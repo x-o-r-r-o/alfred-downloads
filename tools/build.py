@@ -23,7 +23,7 @@ def scriptfilter(o):
     return ("alfred.workflow.input.scriptfilter", 3, {
         "alfredfiltersresults": o.get("alfredfilters", False),
         "alfredfiltersresultsmatchmode": 0,
-        "argumenttreatemptyqueryasnil": False,
+        "argumenttreatemptyqueryasnil": True,
         "argumenttrimmode": 0,
         "argumenttype": {"required": 0, "optional": 1, "none": 2}[o.get("argument", "optional")],
         "escaping": 102,
@@ -75,6 +75,8 @@ def notification(o):
 
 
 def universalaction(o):
+    # acceptsmulti: 0 = single item, 1 = single and multiple, 2 = multiple only
+    # (alfredapp/simple-diff-workflow uses 2 for its two-file "Path Diff")
     return ("alfred.workflow.trigger.universalaction", 1, {
         "acceptsfiles": o.get("files", False),
         "acceptsmulti": o.get("multi", 0),
@@ -85,11 +87,9 @@ def universalaction(o):
 
 
 def fileaction(o):
+    # keys as in alfredapp/heic-to-jpeg-workflow and tinypng-workflow (no accepts* flags)
     return ("alfred.workflow.trigger.action", 1, {
-        "acceptsfiles": True,
         "acceptsmulti": o.get("multi", 0),
-        "acceptstext": False,
-        "acceptsurls": False,
         "filetypes": o.get("filetypes", []),
         "name": o["name"],
     })
