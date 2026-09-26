@@ -3,24 +3,77 @@
 <plist version="1.0">
 <dict>
 	<key>bundleid</key>
-	<string>com.xorro.downloads</string>
-	<key>name</key>
-	<string>Downloads</string>
-	<key>description</key>
-	<string>Browse, open, reveal, drag and clean up ~/Downloads, newest first.</string>
-	<key>createdby</key>
-	<string>xorro</string>
-	<key>version</key>
-	<string>0.1.0</string>
-	<key>readme</key>
-	<string>See README.md</string>
-	<key>objects</key>
-	<array/>
+	<string>io.github.x-o-r-r-o.downloads</string>
+	<key>category</key>
+	<string>Productivity</string>
 	<key>connections</key>
 	<dict/>
+	<key>createdby</key>
+	<string>x-o-r-r-o</string>
+	<key>description</key>
+	<string>Browse, open, reveal, drag and clean up ~/Downloads, newest first.</string>
+	<key>name</key>
+	<string>Downloads</string>
+	<key>objects</key>
+	<array/>
+	<key>readme</key>
+	<string># Downloads
+
+Browse, open, reveal, drag and clean up ~/Downloads, newest first.
+
+&gt; **Status:** planned — not yet functional. See [PLAN.md](PLAN.md).
+
+## Usage
+
+Browse, open, reveal, drag and clean up ~/Downloads, newest first via the `dls` keyword.
+
+![Downloads results in Alfred](images/dls.png)
+
+* &lt;kbd&gt;↩&lt;/kbd&gt; Primary action.
+* &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Secondary action.
+* &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;Y&lt;/kbd&gt; Quick Look.
+
+Every keyword can be changed in the Workflow’s Configuration.
+
+## Development
+
+```bash
+./build.sh   # -&gt; dist/alfred-downloads-&lt;version&gt;.alfredworkflow
+```
+
+## AI disclosure
+
+This workflow is developed with the help of Claude (Anthropic), an AI assistant. All code is reviewed and tested by the author.
+</string>
 	<key>uidata</key>
 	<dict/>
 	<key>userconfigurationconfig</key>
-	<array/>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>dls</string>
+				<key>placeholder</key>
+				<string>dls</string>
+				<key>required</key>
+				<true/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string></string>
+			<key>label</key>
+			<string>Dls keyword</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>keyword_dls</string>
+		</dict>
+	</array>
+	<key>version</key>
+	<string>0.1.0</string>
+	<key>webaddress</key>
+	<string>https://github.com/x-o-r-r-o/alfred-downloads</string>
 </dict>
 </plist>
