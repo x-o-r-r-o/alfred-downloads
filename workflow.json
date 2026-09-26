@@ -1,0 +1,165 @@
+{
+  "bundleid": "io.github.x-o-r-r-o.downloads",
+  "name": "Downloads",
+  "description": "Browse your Downloads folder newest first: open, reveal, copy, paste or trash files",
+  "category": "Productivity",
+  "createdby": "x-o-r-r-o",
+  "webaddress": "https://github.com/x-o-r-r-o/alfred-downloads",
+  "version": "1.0.0",
+  "variablesdontexport": [],
+  "config": [
+    {
+      "type": "textfield",
+      "variable": "keyword_dls",
+      "label": "Keyword",
+      "description": "Lists your downloads, newest first",
+      "config": {
+        "default": "dls",
+        "placeholder": "dls",
+        "required": true,
+        "trim": true
+      }
+    },
+    {
+      "type": "filepicker",
+      "variable": "downloads_folder",
+      "label": "Downloads folder",
+      "description": "The folder to list",
+      "config": {
+        "default": "~/Downloads",
+        "filtermode": 1,
+        "placeholder": "~/Downloads",
+        "required": false
+      }
+    },
+    {
+      "type": "popupbutton",
+      "variable": "sort_by",
+      "label": "Sort by",
+      "description": "Date Added matches Finder’s Downloads stack",
+      "config": {
+        "default": "added",
+        "pairs": [
+          [
+            "Date Added",
+            "added"
+          ],
+          [
+            "Date Modified",
+            "modified"
+          ],
+          [
+            "Date Created",
+            "created"
+          ]
+        ]
+      }
+    },
+    {
+      "type": "checkbox",
+      "variable": "include_subfolders",
+      "label": "Options",
+      "description": "",
+      "config": {
+        "default": false,
+        "required": false,
+        "text": "Include files in subfolders"
+      }
+    },
+    {
+      "type": "checkbox",
+      "variable": "show_hidden",
+      "label": "",
+      "description": "",
+      "config": {
+        "default": false,
+        "required": false,
+        "text": "Show hidden files"
+      }
+    },
+    {
+      "type": "checkbox",
+      "variable": "reopen_after_trash",
+      "label": "",
+      "description": "",
+      "config": {
+        "default": true,
+        "required": false,
+        "text": "Show the list again after moving a file to the Trash"
+      }
+    }
+  ],
+  "objects": [
+    {
+      "id": "sf_dls",
+      "type": "scriptfilter",
+      "keyword": "{var:keyword_dls}",
+      "title": "Downloads",
+      "subtext": "Newest downloads first",
+      "script": "osascript -l JavaScript ./downloads.js list \"$1\""
+    },
+    {
+      "id": "hk_latest",
+      "type": "hotkey",
+      "note": "Show the latest download"
+    },
+    {
+      "id": "arg_latest",
+      "type": "argument",
+      "argument": "latest"
+    },
+    {
+      "id": "act",
+      "type": "script",
+      "script": "osascript -l JavaScript ./downloads.js action \"$1\"",
+      "note": "Open, reveal, trash, copy or paste (the action is in $dl_action)"
+    },
+    {
+      "id": "notify",
+      "type": "notification"
+    }
+  ],
+  "connections": [
+    {
+      "from": "hk_latest",
+      "to": "arg_latest"
+    },
+    {
+      "from": "arg_latest",
+      "to": "sf_dls"
+    },
+    {
+      "from": "sf_dls",
+      "to": "act"
+    },
+    {
+      "from": "sf_dls",
+      "to": "act",
+      "mod": "cmd"
+    },
+    {
+      "from": "sf_dls",
+      "to": "act",
+      "mod": "alt"
+    },
+    {
+      "from": "sf_dls",
+      "to": "act",
+      "mod": "ctrl"
+    },
+    {
+      "from": "sf_dls",
+      "to": "act",
+      "mod": "fn"
+    },
+    {
+      "from": "sf_dls",
+      "to": "act",
+      "mod": "cmd+alt"
+    },
+    {
+      "from": "act",
+      "to": "notify"
+    }
+  ]
+}

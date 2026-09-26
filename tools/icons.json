@@ -1,0 +1,8 @@
+{
+  "icon": ["arrow.down.circle.fill", "#2563EB"],
+  "folder": ["folder.fill", "#0EA5E9"],
+  "empty": ["tray", "#64748B"],
+  "info": ["info.circle.fill", "#64748B"],
+  "lock": ["lock.fill", "#D97706"],
+  "error": ["exclamationmark.triangle.fill", "#DC2626"]
+}

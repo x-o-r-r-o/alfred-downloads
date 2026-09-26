@@ -7,46 +7,348 @@
 	<key>category</key>
 	<string>Productivity</string>
 	<key>connections</key>
-	<dict/>
+	<dict>
+		<key>3B029FF8-F78D-53CE-AF13-E61B1C60E58D</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>4648B771-C0A5-5751-A35E-59FC77A3FD53</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>4648B771-C0A5-5751-A35E-59FC77A3FD53</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>6424214A-FF72-5E76-96E1-AD1549970F9E</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>607495E2-3B2A-5DC6-AA12-AD4CEBEFFF11</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>C8FD4CFD-9B57-5FF9-9DE8-3E39E0A55F9D</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>6424214A-FF72-5E76-96E1-AD1549970F9E</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>607495E2-3B2A-5DC6-AA12-AD4CEBEFFF11</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>607495E2-3B2A-5DC6-AA12-AD4CEBEFFF11</string>
+				<key>modifiers</key>
+				<integer>1048576</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>607495E2-3B2A-5DC6-AA12-AD4CEBEFFF11</string>
+				<key>modifiers</key>
+				<integer>524288</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>607495E2-3B2A-5DC6-AA12-AD4CEBEFFF11</string>
+				<key>modifiers</key>
+				<integer>262144</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>607495E2-3B2A-5DC6-AA12-AD4CEBEFFF11</string>
+				<key>modifiers</key>
+				<integer>8388608</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>607495E2-3B2A-5DC6-AA12-AD4CEBEFFF11</string>
+				<key>modifiers</key>
+				<integer>1572864</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+	</dict>
 	<key>createdby</key>
 	<string>x-o-r-r-o</string>
 	<key>description</key>
-	<string>Browse, open, reveal, drag and clean up ~/Downloads, newest first.</string>
+	<string>Browse your Downloads folder newest first: open, reveal, copy, paste or trash files</string>
+	<key>disabled</key>
+	<false/>
 	<key>name</key>
 	<string>Downloads</string>
 	<key>objects</key>
-	<array/>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>alfredfiltersresults</key>
+				<false/>
+				<key>alfredfiltersresultsmatchmode</key>
+				<integer>0</integer>
+				<key>argumenttreatemptyqueryasnil</key>
+				<false/>
+				<key>argumenttrimmode</key>
+				<integer>0</integer>
+				<key>argumenttype</key>
+				<integer>1</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string>{var:keyword_dls}</string>
+				<key>queuedelaycustom</key>
+				<integer>3</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>0</integer>
+				<key>queuemode</key>
+				<integer>1</integer>
+				<key>runningsubtext</key>
+				<string>…</string>
+				<key>script</key>
+				<string>osascript -l JavaScript ./downloads.js list "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>skipuniversalaction</key>
+				<true/>
+				<key>subtext</key>
+				<string>Newest downloads first</string>
+				<key>title</key>
+				<string>Downloads</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>6424214A-FF72-5E76-96E1-AD1549970F9E</string>
+			<key>version</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>action</key>
+				<integer>0</integer>
+				<key>argument</key>
+				<integer>0</integer>
+				<key>focusedappvariable</key>
+				<false/>
+				<key>focusedappvariablename</key>
+				<string></string>
+				<key>hotkey</key>
+				<integer>0</integer>
+				<key>hotmod</key>
+				<integer>0</integer>
+				<key>leftcursor</key>
+				<false/>
+				<key>modsmode</key>
+				<integer>0</integer>
+				<key>relatedAppsMode</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.trigger.hotkey</string>
+			<key>uid</key>
+			<string>3B029FF8-F78D-53CE-AF13-E61B1C60E58D</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argument</key>
+				<string>latest</string>
+				<key>passthroughargument</key>
+				<false/>
+				<key>variables</key>
+				<dict/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.utility.argument</string>
+			<key>uid</key>
+			<string>4648B771-C0A5-5751-A35E-59FC77A3FD53</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>osascript -l JavaScript ./downloads.js action "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>607495E2-3B2A-5DC6-AA12-AD4CEBEFFF11</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>lastpathcomponent</key>
+				<false/>
+				<key>onlyshowifquerypopulated</key>
+				<true/>
+				<key>removeextension</key>
+				<false/>
+				<key>text</key>
+				<string>{query}</string>
+				<key>title</key>
+				<string>{var:alfred_workflow_name}</string>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.output.notification</string>
+			<key>uid</key>
+			<string>C8FD4CFD-9B57-5FF9-9DE8-3E39E0A55F9D</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+	</array>
 	<key>readme</key>
-	<string># Downloads
+	<string>## Usage
 
-Browse, open, reveal, drag and clean up ~/Downloads, newest first.
+See your downloads, newest first, via the `dls` keyword. Files are sorted by the date they were added to the folder, like Finder’s Downloads stack, so an old file you just downloaded still comes first. Each row shows the size, how long ago it arrived and the website it came from. Type to search by name: letters only need to appear in order, and accents are ignored.
 
-&gt; **Status:** planned — not yet functional. See [PLAN.md](PLAN.md).
-
-## Usage
-
-Browse, open, reveal, drag and clean up ~/Downloads, newest first via the `dls` keyword.
-
-![Downloads results in Alfred](images/dls.png)
-
-* &lt;kbd&gt;↩&lt;/kbd&gt; Primary action.
-* &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Secondary action.
+* &lt;kbd&gt;↩&lt;/kbd&gt; Open the file.
+* &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Reveal in Finder.
+* &lt;kbd&gt;⌥&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Move to the Trash.
+* &lt;kbd&gt;⌃&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Copy the file to the clipboard, ready to paste into Finder, Mail or a chat.
+* &lt;kbd&gt;fn&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Paste the file into the frontmost app.
+* &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;⌥&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Copy the address the file was downloaded from.
+* &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;C&lt;/kbd&gt; Copy the path.
 * &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;Y&lt;/kbd&gt; Quick Look.
 
+Results are real files, so &lt;kbd&gt;→&lt;/kbd&gt; shows Alfred’s file actions (Move To, Copy To, Open With, Compress…) and the File Buffer works on several downloads at once.
+
+After moving a file to the Trash, the list comes back so you can keep tidying up. Files in the Trash can be put back from Finder.
+
+### Filters
+
+Type a filter after the keyword to see one kind of file, then optionally a search, like `dls pdf invoice`:
+
+* `img` images, `pdf` PDFs, `doc` documents and spreadsheets.
+* `zip` archives, `dmg` disk images, installers and apps.
+* `video`, `audio`, `folder`.
+* `today`, `yesterday`, `week`, `month` for recent downloads.
+* `latest` for the most recent finished download.
+
+Filters combine: `dls img today`.
+
+### Latest Download
+
+Configure the Hotkey to show the most recent finished download, then press &lt;kbd&gt;↩&lt;/kbd&gt; to open it or use any modifier above. Unfinished downloads are skipped. The same list appears via the `dls latest` keyword.
+
+### In-progress and iCloud Files
+
+Downloads still in progress in Safari, Chrome, Edge, Brave, Firefox or Opera are marked “Downloading…” and the list refreshes on its own while they grow. &lt;kbd&gt;↩&lt;/kbd&gt; reveals them instead of opening a half-finished file. Files stored only in iCloud are marked, and &lt;kbd&gt;↩&lt;/kbd&gt; starts downloading them.
+
+### Configuration
+
+In the Workflow’s Configuration you can choose another folder to list, sort by date modified or created instead of date added, include files in subfolders, and show hidden files. Cleaning up old downloads is left to a dedicated workflow.
+
 Every keyword can be changed in the Workflow’s Configuration.
-
-## Development
-
-```bash
-./build.sh   # -&gt; dist/alfred-downloads-&lt;version&gt;.alfredworkflow
-```
-
-## AI disclosure
-
-This workflow is developed with the help of Claude (Anthropic), an AI assistant. All code is reviewed and tested by the author.
 </string>
 	<key>uidata</key>
-	<dict/>
+	<dict>
+		<key>3B029FF8-F78D-53CE-AF13-E61B1C60E58D</key>
+		<dict>
+			<key>note</key>
+			<string>Show the latest download</string>
+			<key>xpos</key>
+			<integer>30</integer>
+			<key>ypos</key>
+			<integer>20</integer>
+		</dict>
+		<key>4648B771-C0A5-5751-A35E-59FC77A3FD53</key>
+		<dict>
+			<key>xpos</key>
+			<integer>250</integer>
+			<key>ypos</key>
+			<integer>20</integer>
+		</dict>
+		<key>607495E2-3B2A-5DC6-AA12-AD4CEBEFFF11</key>
+		<dict>
+			<key>note</key>
+			<string>Open, reveal, trash, copy or paste (the action is in $dl_action)</string>
+			<key>xpos</key>
+			<integer>690</integer>
+			<key>ypos</key>
+			<integer>20</integer>
+		</dict>
+		<key>6424214A-FF72-5E76-96E1-AD1549970F9E</key>
+		<dict>
+			<key>xpos</key>
+			<integer>470</integer>
+			<key>ypos</key>
+			<integer>20</integer>
+		</dict>
+		<key>C8FD4CFD-9B57-5FF9-9DE8-3E39E0A55F9D</key>
+		<dict>
+			<key>xpos</key>
+			<integer>910</integer>
+			<key>ypos</key>
+			<integer>20</integer>
+		</dict>
+	</dict>
 	<key>userconfigurationconfig</key>
 	<array>
 		<dict>
@@ -62,17 +364,129 @@ This workflow is developed with the help of Claude (Anthropic), an AI assistant.
 				<true/>
 			</dict>
 			<key>description</key>
-			<string></string>
+			<string>Lists your downloads, newest first</string>
 			<key>label</key>
-			<string>Dls keyword</string>
+			<string>Keyword</string>
 			<key>type</key>
 			<string>textfield</string>
 			<key>variable</key>
 			<string>keyword_dls</string>
 		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>~/Downloads</string>
+				<key>filtermode</key>
+				<integer>1</integer>
+				<key>placeholder</key>
+				<string>~/Downloads</string>
+				<key>required</key>
+				<false/>
+			</dict>
+			<key>description</key>
+			<string>The folder to list</string>
+			<key>label</key>
+			<string>Downloads folder</string>
+			<key>type</key>
+			<string>filepicker</string>
+			<key>variable</key>
+			<string>downloads_folder</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>added</string>
+				<key>pairs</key>
+				<array>
+					<array>
+						<string>Date Added</string>
+						<string>added</string>
+					</array>
+					<array>
+						<string>Date Modified</string>
+						<string>modified</string>
+					</array>
+					<array>
+						<string>Date Created</string>
+						<string>created</string>
+					</array>
+				</array>
+			</dict>
+			<key>description</key>
+			<string>Date Added matches Finder’s Downloads stack</string>
+			<key>label</key>
+			<string>Sort by</string>
+			<key>type</key>
+			<string>popupbutton</string>
+			<key>variable</key>
+			<string>sort_by</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<false/>
+				<key>required</key>
+				<false/>
+				<key>text</key>
+				<string>Include files in subfolders</string>
+			</dict>
+			<key>description</key>
+			<string></string>
+			<key>label</key>
+			<string>Options</string>
+			<key>type</key>
+			<string>checkbox</string>
+			<key>variable</key>
+			<string>include_subfolders</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<false/>
+				<key>required</key>
+				<false/>
+				<key>text</key>
+				<string>Show hidden files</string>
+			</dict>
+			<key>description</key>
+			<string></string>
+			<key>label</key>
+			<string></string>
+			<key>type</key>
+			<string>checkbox</string>
+			<key>variable</key>
+			<string>show_hidden</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<true/>
+				<key>required</key>
+				<false/>
+				<key>text</key>
+				<string>Show the list again after moving a file to the Trash</string>
+			</dict>
+			<key>description</key>
+			<string></string>
+			<key>label</key>
+			<string></string>
+			<key>type</key>
+			<string>checkbox</string>
+			<key>variable</key>
+			<string>reopen_after_trash</string>
+		</dict>
 	</array>
+	<key>variables</key>
+	<dict/>
+	<key>variablesdontexport</key>
+	<array/>
 	<key>version</key>
-	<string>0.1.0</string>
+	<string>1.0.0</string>
 	<key>webaddress</key>
 	<string>https://github.com/x-o-r-r-o/alfred-downloads</string>
 </dict>
