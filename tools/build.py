@@ -24,14 +24,14 @@ def scriptfilter(o):
         "alfredfiltersresults": o.get("alfredfilters", False),
         "alfredfiltersresultsmatchmode": 0,
         "argumenttreatemptyqueryasnil": True,
-        "argumenttrimmode": 0,
+        "argumenttrimmode": o.get("trimmode", 0),
         "argumenttype": {"required": 0, "optional": 1, "none": 2}[o.get("argument", "optional")],
         "escaping": 102,
         "keyword": o["keyword"],
         "queuedelaycustom": 3,
         "queuedelayimmediatelyinitially": True,
         "queuedelaymode": o.get("queuedelaymode", 0),
-        "queuemode": 1,
+        "queuemode": o.get("queuemode", 1),
         "runningsubtext": o.get("running", "…"),
         "script": o["script"],
         "scriptargtype": 1,
@@ -204,8 +204,11 @@ def build(check_only=False):
         print("\n".join("ERROR: " + e for e in errors))
         sys.exit(1)
     if not check_only:
-        with open(os.path.join(SRC, "info.plist"), "wb") as f:
+        # Write atomically: Alfred (or a parallel build) may read info.plist at any moment
+        tmp = os.path.join(SRC, f".info.plist.tmp-{os.getpid()}")
+        with open(tmp, "wb") as f:
             plistlib.dump(info, f)
+        os.replace(tmp, os.path.join(SRC, "info.plist"))
     return info
 
 
@@ -213,9 +216,8 @@ def package(info):
     os.makedirs(os.path.join(ROOT, "dist"), exist_ok=True)
     slug = os.path.basename(ROOT)
     out = os.path.join(ROOT, "dist", f"{slug}-{info['version']}.alfredworkflow")
-    if os.path.exists(out):
-        os.remove(out)
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+    tmp = f"{out}.tmp-{os.getpid()}"
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
         for base, dirs, files in os.walk(SRC):
             dirs[:] = [d for d in dirs if not d.startswith((".", "__"))]
             for f in sorted(files):
@@ -223,6 +225,7 @@ def package(info):
                     continue
                 p = os.path.join(base, f)
                 z.write(p, os.path.relpath(p, SRC))
+    os.replace(tmp, out)
     print("Built", os.path.relpath(out, ROOT))
 
 
