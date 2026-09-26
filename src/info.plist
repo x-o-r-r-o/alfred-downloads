@@ -103,6 +103,16 @@
 				<key>destinationuid</key>
 				<string>607495E2-3B2A-5DC6-AA12-AD4CEBEFFF11</string>
 				<key>modifiers</key>
+				<integer>131072</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>607495E2-3B2A-5DC6-AA12-AD4CEBEFFF11</string>
+				<key>modifiers</key>
 				<integer>1572864</integer>
 				<key>modifiersubtext</key>
 				<string></string>
@@ -187,6 +197,8 @@
 				<integer>0</integer>
 				<key>hotmod</key>
 				<integer>0</integer>
+				<key>hotstring</key>
+				<string></string>
 				<key>leftcursor</key>
 				<false/>
 				<key>modsmode</key>
@@ -273,9 +285,10 @@ See your downloads, newest first, via the `dls` keyword. Files are sorted by the
 * &lt;kbd&gt;⌥&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Move to the Trash.
 * &lt;kbd&gt;⌃&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Copy the file to the clipboard, ready to paste into Finder, Mail or a chat.
 * &lt;kbd&gt;fn&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Paste the file into the frontmost app.
+* &lt;kbd&gt;⇧&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Move the file to the folder open in the frontmost Finder window.
 * &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;⌥&lt;/kbd&gt;&lt;kbd&gt;↩&lt;/kbd&gt; Copy the address the file was downloaded from.
 * &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;C&lt;/kbd&gt; Copy the path.
-* &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;Y&lt;/kbd&gt; Quick Look.
+* &lt;kbd&gt;⌘&lt;/kbd&gt;&lt;kbd&gt;Y&lt;/kbd&gt; Quick Look the file.
 
 Results are real files, so &lt;kbd&gt;→&lt;/kbd&gt; shows Alfred’s file actions (Move To, Copy To, Open With, Compress…) and the File Buffer works on several downloads at once.
 
@@ -289,6 +302,7 @@ Type a filter after the keyword to see one kind of file, then optionally a searc
 * `zip` archives, `dmg` disk images, installers and apps.
 * `video`, `audio`, `folder`.
 * `today`, `yesterday`, `week`, `month` for recent downloads.
+* `big` for the largest files first, to see what takes up space.
 * `latest` for the most recent finished download.
 
 Filters combine: `dls img today`.
@@ -303,7 +317,7 @@ Downloads still in progress in Safari, Chrome, Edge, Brave, Firefox or Opera are
 
 ### Configuration
 
-In the Workflow’s Configuration you can choose another folder to list, sort by date modified or created instead of date added, include files in subfolders (up to four levels deep, bundles like apps are never opened up), and show hidden files. Cleaning up old downloads is left to a dedicated workflow.
+In the Workflow’s Configuration you can choose another folder to list, sort by date modified or created instead of date added, include files in subfolders (up to four levels deep and 20,000 files, bundles like apps are never opened up), and show hidden files. Cleaning up old downloads is left to a dedicated workflow.
 
 Every keyword can be changed in the Workflow’s Configuration.
 </string>
@@ -328,7 +342,7 @@ Every keyword can be changed in the Workflow’s Configuration.
 		<key>607495E2-3B2A-5DC6-AA12-AD4CEBEFFF11</key>
 		<dict>
 			<key>note</key>
-			<string>Open, reveal, trash, copy or paste (the action is in $dl_action)</string>
+			<string>Open, reveal, trash, move, copy or paste (the action is in $dl_action)</string>
 			<key>xpos</key>
 			<integer>690</integer>
 			<key>ypos</key>

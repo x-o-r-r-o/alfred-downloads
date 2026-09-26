@@ -112,7 +112,7 @@
       "id": "act",
       "type": "script",
       "script": "osascript -l JavaScript ./downloads.js action \"$1\"",
-      "note": "Open, reveal, trash, copy or paste (the action is in $dl_action)"
+      "note": "Open, reveal, trash, move, copy or paste (the action is in $dl_action)"
     },
     {
       "id": "notify",
@@ -151,6 +151,11 @@
       "from": "sf_dls",
       "to": "act",
       "mod": "fn"
+    },
+    {
+      "from": "sf_dls",
+      "to": "act",
+      "mod": "shift"
     },
     {
       "from": "sf_dls",

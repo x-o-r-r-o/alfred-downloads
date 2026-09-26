@@ -98,7 +98,7 @@ def fileaction(o):
 def hotkey(o):
     return ("alfred.workflow.trigger.hotkey", 2, {
         "action": 0, "argument": o.get("argument", 0), "focusedappvariable": False,
-        "focusedappvariablename": "", "hotkey": 0, "hotmod": 0, "leftcursor": False,
+        "focusedappvariablename": "", "hotkey": 0, "hotmod": 0, "hotstring": "", "leftcursor": False,
         "modsmode": 0, "relatedAppsMode": 0,
     })
 

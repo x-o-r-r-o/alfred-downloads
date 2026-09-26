@@ -13,9 +13,10 @@ See your downloads, newest first, via the `dls` keyword. Files are sorted by the
 * <kbd>⌥</kbd><kbd>↩</kbd> Move to the Trash.
 * <kbd>⌃</kbd><kbd>↩</kbd> Copy the file to the clipboard, ready to paste into Finder, Mail or a chat.
 * <kbd>fn</kbd><kbd>↩</kbd> Paste the file into the frontmost app.
+* <kbd>⇧</kbd><kbd>↩</kbd> Move the file to the folder open in the frontmost Finder window.
 * <kbd>⌘</kbd><kbd>⌥</kbd><kbd>↩</kbd> Copy the address the file was downloaded from.
 * <kbd>⌘</kbd><kbd>C</kbd> Copy the path.
-* <kbd>⌘</kbd><kbd>Y</kbd> Quick Look.
+* <kbd>⌘</kbd><kbd>Y</kbd> Quick Look the file.
 
 Results are real files, so <kbd>→</kbd> shows Alfred’s file actions (Move To, Copy To, Open With, Compress…) and the File Buffer works on several downloads at once.
 
@@ -29,6 +30,7 @@ Type a filter after the keyword to see one kind of file, then optionally a searc
 * `zip` archives, `dmg` disk images, installers and apps.
 * `video`, `audio`, `folder`.
 * `today`, `yesterday`, `week`, `month` for recent downloads.
+* `big` for the largest files first, to see what takes up space.
 * `latest` for the most recent finished download.
 
 Filters combine: `dls img today`.
@@ -49,7 +51,7 @@ Downloads still in progress in Safari, Chrome, Edge, Brave, Firefox or Opera are
 
 ### Configuration
 
-In the Workflow’s Configuration you can choose another folder to list, sort by date modified or created instead of date added, include files in subfolders (up to four levels deep, bundles like apps are never opened up), and show hidden files. Cleaning up old downloads is left to a dedicated workflow.
+In the Workflow’s Configuration you can choose another folder to list, sort by date modified or created instead of date added, include files in subfolders (up to four levels deep and 20,000 files, bundles like apps are never opened up), and show hidden files. Cleaning up old downloads is left to a dedicated workflow.
 
 Every keyword can be changed in the Workflow’s Configuration.
 

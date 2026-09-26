@@ -32,7 +32,7 @@ def items(folder, query="", **env):
 
 
 def files(folder, query="", **env):
-    return [i for i in items(folder, query, **env) if i.get("type") == "file" and not i["title"].startswith("Open ")]
+    return [i for i in items(folder, query, **env) if str(i.get("type", "")).startswith("file") and not i["title"].startswith("Open ")]
 
 
 def titles(folder, query="", **env):
@@ -121,7 +121,7 @@ class OrderTests(Base):
         self.assertEqual(it["variables"]["dl_action"], "open")
         acts = {k: (m["variables"]["dl_action"], m["arg"]) for k, m in it["mods"].items()}
         self.assertEqual(acts, {"cmd": ("reveal", real), "alt": ("trash", real), "ctrl": ("copy", real),
-                                "fn": ("paste", real), "cmd+alt": ("copyurl", real)})
+                                "fn": ("paste", real), "shift": ("move", real), "cmd+alt": ("copyurl", real)})
         data = sf(self.dir, "rep")
         self.assertTrue(data["skipknowledge"])
         self.assertEqual(data["variables"]["dl_query"], "rep")
@@ -572,6 +572,99 @@ class AuditPass3Tests(Base):
         self.assertNotIn("'", it[0]["subtitle"])
 
 
+class AuditPass4Tests(Base):
+    """Regressions for bugs found in the fourth audit, and the features it added."""
+
+    def test_prototype_names_do_not_crash_filters(self):
+        touch(self.p("x.constructor"))
+        touch(self.p("y.__proto__"))
+        touch(self.p("constructor notes.txt"))
+        touch(self.p("a.zip"))
+        self.assertEqual(titles(self.dir, "zip"), ["a.zip"])
+        self.assertEqual(titles(self.dir, "img"), [])
+        self.assertEqual(titles(self.dir, "constructor"), ["constructor notes.txt", "x.constructor"])
+        self.assertEqual(titles(self.dir, "__proto__"), ["y.__proto__"])
+
+    def test_huge_folder_is_never_truncated(self):
+        for i in range(20_050):
+            open(os.path.join(self.dir, f"f{i:05}.txt"), "wb").close()
+        time.sleep(0.01)
+        touch(self.p("newest.pdf"))
+        its = items(self.dir, "pdf")
+        self.assertEqual(its[0]["title"], "newest.pdf")
+        its = items(self.dir)
+        self.assertEqual(its[0]["title"], "newest.pdf")
+        self.assertTrue(its[-2]["title"].startswith("Showing the newest 100 of 20,051"), its[-2])
+        self.assertFalse(any("subfolders" in i["title"].lower() for i in its))
+
+    def test_big_subfolder_does_not_hide_top_level_files(self):
+        sub = self.p("aaa huge")
+        os.makedirs(sub)
+        for i in range(20_010):
+            open(os.path.join(sub, f"f{i:05}.txt"), "wb").close()
+        for i in range(30):
+            touch(self.p(f"top {i}.txt"))
+        t = titles(self.dir, "top", include_subfolders="1")
+        self.assertEqual(len(t), 30)
+        self.assertEqual(items(self.dir, include_subfolders="1")[-2]["title"], "Some subfolders weren’t searched")
+
+    def test_future_dates(self):
+        touch(self.p("future.txt"), mtime=4102444800)  # 2100
+        touch(self.p("now.txt"))
+        sub = {i["title"]: i["subtitle"] for i in files(self.dir, sort_by="modified")}
+        self.assertIn("1 Jan 2100", sub["future.txt"])
+        self.assertEqual(titles(self.dir, "today", sort_by="modified"), ["now.txt"])
+        self.assertEqual(titles(self.dir, "week", sort_by="modified"), ["now.txt"])
+
+    def test_bidi_overrides_are_removed_from_titles(self):
+        touch(self.p("invoice\u202efdp.exe"))
+        it = files(self.dir)[0]
+        self.assertEqual(it["title"], "invoicefdp.exe")
+        self.assertEqual(os.path.basename(it["arg"]), "invoice\u202efdp.exe")
+
+    def test_broken_link_skips_alfreds_existence_check(self):
+        os.symlink(self.p("missing"), self.p("broken"))
+        touch(self.p("real.txt"))
+        types = {i["title"]: i["type"] for i in files(self.dir)}
+        self.assertEqual(types, {"broken": "file:skipcheck", "real.txt": "file"})
+
+    def test_big_filter_sorts_by_size(self):
+        touch(self.p("small.bin"), b"x")
+        touch(self.p("large.bin"), b"x" * 5000)
+        touch(self.p("medium.bin"), b"x" * 100)
+        os.makedirs(self.p("folder"))
+        self.assertEqual(titles(self.dir, "big"), ["large.bin", "medium.bin", "small.bin"])
+        self.assertEqual(titles(self.dir, "large med"), ["medium.bin"])
+        for i in range(101):
+            open(self.p(f"n{i}.bin"), "wb").close()
+        self.assertTrue(items(self.dir, "big")[-2]["title"].startswith("Showing the largest 100 of 104"))
+
+    def test_move_to_finder_folder(self):
+        dest = os.path.join(self.tmp, "Projects ✨")
+        os.makedirs(dest)
+        f = touch(self.p("report.pdf"), b"data")
+        out = action(f, "move", self.dir, DL_TEST_FINDER_DIR=dest)
+        self.assertEqual(out, "Moved “report.pdf” to “Projects ✨”")
+        self.assertFalse(os.path.exists(f))
+        self.assertTrue(os.path.exists(os.path.join(dest, "report.pdf")))
+        # never overwrite
+        g = touch(self.p("report.pdf"), b"new")
+        self.assertTrue(action(g, "move", self.dir, DL_TEST_FINDER_DIR=dest).startswith("Not moved"))
+        self.assertEqual(open(os.path.join(dest, "report.pdf"), "rb").read(), b"data")
+        # already there, no Finder window, into itself, not a download
+        self.assertIn("is already in", action(g, "move", self.dir, DL_TEST_FINDER_DIR=self.dir))
+        self.assertEqual(action(g, "move", self.dir, DL_TEST_FINDER_DIR=""), "Open the destination folder in Finder first")
+        os.makedirs(self.p("box", "inner"))
+        self.assertIn("into itself", action(self.p("box"), "move", self.dir, DL_TEST_FINDER_DIR=self.p("box", "inner")))
+        outside = touch(os.path.join(self.tmp, "keep.txt"))
+        self.assertTrue(action(outside, "move", self.dir, DL_TEST_FINDER_DIR=dest).startswith("Not moved"))
+        # unfinished downloads stay put
+        part = touch(self.p("x.iso.crdownload"))
+        self.assertEqual(action(part, "move", self.dir, DL_TEST_FINDER_DIR=dest), "“x.iso.crdownload” is still downloading")
+        self.assertEqual(action(g, "move", self.dir), f"move {g}")  # dry run never asks Finder
+        self.assertFalse(items(self.dir)[-1]["mods"]["shift"]["valid"])
+
+
 class PerformanceTests(Base):
     def test_ten_thousand_files(self):
         for i in range(10000):
@@ -629,7 +722,13 @@ class PlistTests(unittest.TestCase):
         # every modifier used in the Script Filter JSON has a connection
         sf_uid = next(o["uid"] for o in p["objects"] if o["type"] == "alfred.workflow.input.scriptfilter")
         mods = {c["modifiers"] for c in p["connections"][sf_uid]}
-        self.assertEqual(mods, {0, 1048576, 524288, 262144, 8388608, 1572864})
+        self.assertEqual(mods, {0, 1048576, 524288, 262144, 8388608, 131072, 1572864})
+        # the Hotkey passes "latest" through an Argument utility, like alfredapp/thumbnail-navigation-workflow
+        by_type = {o["type"].rsplit(".", 1)[-1]: o for o in p["objects"]}
+        self.assertEqual(by_type["hotkey"]["config"]["hotstring"], "")
+        self.assertEqual(by_type["argument"]["config"]["argument"], "latest")
+        self.assertEqual(p["connections"][by_type["hotkey"]["uid"]][0]["destinationuid"], by_type["argument"]["uid"])
+        self.assertEqual(p["connections"][by_type["argument"]["uid"]][0]["destinationuid"], sf_uid)
         out = subprocess.run(["sips", "-g", "pixelWidth", os.path.join(SRC, "icon.png")], capture_output=True, text=True).stdout
         self.assertGreaterEqual(int(out.split()[-1]), 256)
 

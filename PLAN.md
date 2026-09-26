@@ -18,8 +18,10 @@ Raycast demand this workflow replaces (downloads, 2026-09-26):
 - [x] `dls latest` hotkey: act on most recent finished download
 - [x] Cleanup of old downloads is left to Burrow (`bularge` / `buinstallers` / proposed `old downloads` filter)
 - [x] Filter by type (images, pdf, archives, dmg, video, audio, docs, folders) and by time (today, yesterday, week, month)
+- [x] `big` filter: largest files first
+- [x] ⇧↩ moves a download to the folder open in the frontmost Finder window (Raycast #5248/#16848, forum “Move last download to here”)
 - [x] Configurable folder, sort order, subfolders, hidden files; in-progress and iCloud-aware
-- [x] 10,000 files listed in ~110 ms (getattrlistbulk, no cache needed)
+- [x] 10,000 files listed in ~120 ms, 50,000 in ~0.4 s (getattrlistbulk, no cache needed; the top folder is never truncated)
 - [ ] ~~Universal Action “Move to Downloads”~~: dropped, Alfred’s own Move To file action covers it
 
 ## Tech

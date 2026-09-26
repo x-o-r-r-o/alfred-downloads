@@ -60,13 +60,14 @@ const KINDS = {
   audio: "mp3 m4a m4b aac wav flac aif aiff aifc ogg oga opus wma alac mid midi caf amr",
   doc: "pdf doc docx dot dotx pages rtf rtfd txt md markdown odt xls xlsx xlsm numbers csv tsv ppt pptx key odp ods epub mobi azw3 tex log json xml html htm",
 };
-const EXT_KIND = {};
+// Null-prototype maps: a file named "x.constructor" or a query like "__proto__" must not hit Object.prototype
+const EXT_KIND = Object.create(null);
 for (const [kind, list] of Object.entries(KINDS)) {
   for (const ext of list.split(" ")) (EXT_KIND[ext] = EXT_KIND[ext] || []).push(kind);
 }
 
 // Words typed after the keyword that filter instead of search
-const FILTERS = {
+const FILTERS = Object.assign(Object.create(null), {
   img: "image", image: "image", images: "image", pic: "image", pics: "image", photo: "image", photos: "image",
   pdf: "pdf", pdfs: "pdf",
   zip: "archive", zips: "archive", archive: "archive", archives: "archive",
@@ -77,7 +78,8 @@ const FILTERS = {
   folder: "folder", folders: "folder", dir: "folder",
   today: "@today", yesterday: "@yesterday", week: "@week", month: "@month",
   latest: "@latest", last: "@latest",
-};
+  big: "@big", large: "@big", largest: "@big",
+});
 
 // Directories that behave like files
 const PACKAGE_EXT = new Set(
@@ -254,15 +256,18 @@ function isPackage(path, name) {
 }
 
 // Walk the folder (and optionally its subfolders) and return display-ready entries.
+// The folder itself is always read in full; subfolders are read breadth-first, shallowest first,
+// until MAX_ENTRIES entries have been collected, so a huge subfolder never hides newer top-level files.
 function scan(cfg) {
   const entries = [];
   let truncated = false;
+  const queue = [];
   const walk = (dir, rel, depth) => {
     const raw = readDir(dir);
     if (!Array.isArray(raw)) return raw.error;
     const names = new Set(raw.map((r) => r.name));
     for (const r of raw) {
-      if (entries.length >= MAX_ENTRIES) {
+      if (depth > 0 && entries.length >= MAX_ENTRIES) {
         truncated = true;
         return null;
       }
@@ -292,12 +297,19 @@ function scan(cfg) {
       if (e.hidden && !cfg.hidden) continue;
       entries.push(e);
       if (cfg.subfolders && e.dir && !e.pkg && depth < MAX_DEPTH) {
-        walk(path, rel ? `${rel}/${r.name}` : r.name, depth + 1);
+        queue.push([path, rel ? `${rel}/${r.name}` : r.name, depth + 1]);
       }
     }
     return null;
   };
   const error = walk(cfg.folder, "", 0);
+  for (let i = 0; !error && i < queue.length; i++) {
+    if (entries.length >= MAX_ENTRIES) {
+      truncated = true;
+      break;
+    }
+    walk(...queue[i]);
+  }
   return { entries, error, truncated };
 }
 
@@ -343,11 +355,14 @@ function calendarDaysAgo(t) {
 function applyFilters(entries, filters) {
   let out = entries;
   const today = startOfDay(0), yesterday = startOfDay(1), week = startOfDay(6), month = startOfDay(30);
+  const tomorrow = startOfDay(-1); // files dated in the future don't count as recent
+  const since = (t) => (e) => e.sortTime >= t && e.sortTime < tomorrow;
   for (const f of filters) {
-    if (f === "@today") out = out.filter((e) => e.sortTime >= today);
+    if (f === "@today") out = out.filter(since(today));
     else if (f === "@yesterday") out = out.filter((e) => e.sortTime >= yesterday && e.sortTime < today);
-    else if (f === "@week") out = out.filter((e) => e.sortTime >= week);
-    else if (f === "@month") out = out.filter((e) => e.sortTime >= month);
+    else if (f === "@week") out = out.filter(since(week));
+    else if (f === "@month") out = out.filter(since(month));
+    else if (f === "@big") out = out.filter((e) => !e.dir && !e.link && !e.icloud);
     else if (f !== "@latest") out = out.filter((e) => kindsOf(e).includes(f));
   }
   return out;
@@ -374,19 +389,26 @@ function formatSize(n) {
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function relativeTime(t, now) {
   const s = now - t;
+  if (s < -120) return absoluteDate(t); // dated in the future
   if (s < 45) return "just now";
   if (s < 90) return "1 min ago";
   if (s < 3600) return `${Math.floor(s / 60)} min ago`;
   if (t >= startOfDay(0)) return `${Math.floor(s / 3600)} h ago`;
   if (t >= startOfDay(1)) return "yesterday";
   if (t >= startOfDay(6)) return `${calendarDaysAgo(t)} days ago`;
+  return absoluteDate(t);
+}
+
+function absoluteDate(t) {
   const d = new Date(t * 1000);
   const thisYear = new Date().getFullYear();
   return `${d.getDate()} ${MONTHS[d.getMonth()]}${d.getFullYear() === thisYear ? "" : " " + d.getFullYear()}`;
 }
 
 function oneLine(s) {
-  return String(s).replace(/[\x00-\x1f\x7f\u2028\u2029]+/g, " ");
+  // control characters and line breaks become spaces; bidi overrides are dropped so a name
+  // like "\u202Egnp.exe" can't pose as a different file type
+  return String(s).replace(/[\x00-\x1f\x7f\u2028\u2029]+/g, " ").replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "");
 }
 
 // ---------- extended attributes: where a file was downloaded from ----------
@@ -435,6 +457,7 @@ function modsFor(e, path, query) {
     alt: m("trash", "Move to Trash"),
     ctrl: m("copy", "Copy the file to the clipboard"),
     fn: m("paste", "Paste the file into the frontmost app"),
+    shift: m("move", "Move to the folder open in Finder"),
     "cmd+alt": m("copyurl", "Copy the address it was downloaded from"),
   };
 }
@@ -450,6 +473,7 @@ function fileItem(e, cfg, now) {
   const time = e.sortTime;
   const bits = [];
   let action = "open";
+  let brokenLink = false;
   if (e.partial) {
     bits.push(e.dir ? "Downloading…" : `Downloading… ${formatSize(e.size)} so far`);
     bits.push(`started ${relativeTime(time, now)}`);
@@ -457,7 +481,11 @@ function fileItem(e, cfg, now) {
   } else if (e.icloud) {
     bits.push("In iCloud, not downloaded", relativeTime(time, now));
   } else {
-    if (e.link) bits.push(linkLabel(e.path));
+    if (e.link) {
+      const label = linkLabel(e.path);
+      brokenLink = label.startsWith("Broken");
+      bits.push(label);
+    }
     else if (e.dir) bits.push(e.pkg ? (extOf(e.name) === "app" ? "Application" : "Package") : "Folder");
     else bits.push(formatSize(e.size));
     bits.push(relativeTime(time, now));
@@ -470,7 +498,8 @@ function fileItem(e, cfg, now) {
   }
   const mods = modsFor(e, e.path, cfg.query);
   return {
-    type: "file",
+    // Alfred hides "file" rows whose path doesn't resolve; a broken link is still worth listing (and trashing)
+    type: brokenLink ? "file:skipcheck" : "file",
     title: oneLine(e.display),
     subtitle: oneLine(bits.join(" · ")),
     arg: e.path,
@@ -500,6 +529,7 @@ function folderItem(cfg) {
       alt: m("none", "The folder itself can’t be moved to the Trash", false),
       ctrl: m("copy", "Copy the folder to the clipboard"),
       fn: m("paste", "Paste the folder into the frontmost app"),
+      shift: m("none", "The folder itself can’t be moved", false),
       "cmd+alt": m("none", "No download address for a folder", false),
     },
   };
@@ -569,7 +599,9 @@ function listItems(query) {
     }
     list = scored;
   }
-  list.sort((a, b) => (b.score || 0) - (a.score || 0) || b.sortTime - a.sortTime || (a.display < b.display ? -1 : a.display > b.display ? 1 : 0));
+  const bySize = filters.includes("@big");
+  list.sort((a, b) => (b.score || 0) - (a.score || 0) || (bySize ? b.size - a.size : 0) || b.sortTime - a.sortTime ||
+    (a.display < b.display ? -1 : a.display > b.display ? 1 : 0));
   if (filters.includes("@latest")) {
     // the most recent finished download among the matches, whatever the search score
     let best = null;
@@ -585,9 +617,9 @@ function listItems(query) {
     else items.push(info("No matching downloads", `Nothing matches “${oneLine(query.trim())}”`, "empty"));
   }
   if (list.length > MAX_ITEMS) {
-    items.push(info(`Showing ${words.length ? "the best" : "the newest"} ${MAX_ITEMS} of ${list.length.toLocaleString("en-US")}`, "Type to search, or add a filter like img, pdf or zip", "info"));
+    items.push(info(`Showing ${words.length ? "the best" : bySize ? "the largest" : "the newest"} ${MAX_ITEMS} of ${list.length.toLocaleString("en-US")}`, "Type to search, or add a filter like img, pdf or zip", "info"));
   }
-  if (truncated) items.push(info(`Showing the newest of the first ${MAX_ENTRIES.toLocaleString("en-US")} files`, "Turn off “Include subfolders” to see every file", "info"));
+  if (truncated) items.push(info(`Some subfolders weren’t searched`, `Subfolders stop at ${MAX_ENTRIES.toLocaleString("en-US")} files; every file directly in the folder is listed`, "info"));
   items.push(folderItem(cfg));
   const out = { items, variables: { dl_query: query } };
   if (list.slice(0, MAX_ITEMS).some((e) => e.partial)) out.rerun = 1;
@@ -657,6 +689,43 @@ function trash(path, cfg) {
   return `Couldn’t move ${quoteName(path)} to the Trash${why}`;
 }
 
+// The folder shown in the frontmost Finder window, or "" when there isn't one
+function finderFolder() {
+  const test = env("DL_TEST_FINDER_DIR", null);
+  if (test !== null) return test;
+  const finder = Application("Finder");
+  if (!finder.running()) return "";
+  const windows = finder.finderWindows;
+  if (!windows.length) return "";
+  let raw;
+  try {
+    raw = windows[0].target().url(); // fails for windows like Recents or AirDrop that aren't folders
+  } catch (e) {
+    return "";
+  }
+  const url = $.NSURL.URLWithString(raw);
+  return url.isNil() || !url.isFileURL ? "" : url.path.js;
+}
+
+function moveToFolder(path, dest, cfg) {
+  if (!inside(path, cfg.folder)) return `Not moved: ${quoteName(path)} isn’t inside the Downloads folder`;
+  const isDir = Ref();
+  if (!dest || !FM.fileExistsAtPathIsDirectory(dest, isDir) || !isDir[0]) return "Open the destination folder in Finder first";
+  const real = (p) => $(p).stringByResolvingSymlinksInPath.js;
+  const name = $(path).lastPathComponent.js;
+  const from = `${real($(path).stringByDeletingLastPathComponent.js)}/${name}`;
+  const to = real(dest);
+  const shown = `“${oneLine($(to).lastPathComponent.js || to)}”`;
+  if (real($(path).stringByDeletingLastPathComponent.js) === to) return `${quoteName(path)} is already in ${shown}`;
+  if (to === from || to.startsWith(from + "/")) return `Can’t move ${quoteName(path)} into itself`;
+  const target = `${to}/${name}`;
+  if (exists(target)) return `Not moved: ${shown} already has an item named ${quoteName(path)}`;
+  const err = $();
+  if (FM.moveItemAtPathToPathError(path, target, err)) return `Moved ${quoteName(path)} to ${shown}`;
+  const why = !err.isNil() && err.localizedDescription ? ": " + err.localizedDescription.js : "";
+  return `Couldn’t move ${quoteName(path)}${why}`;
+}
+
 function reopenAlfred(cfg) {
   const query = env("dl_query", "");
   const alfred = Application("com.runningwithcrayons.Alfred");
@@ -717,6 +786,18 @@ function doAction(path) {
       if (PARTIAL_RE.test(name)) return `${quoteName(path)} is still downloading`;
       if (action === "paste") return pasteFile(path, dry);
       return copyFile(path) ? `Copied ${quoteName(path)} to the clipboard` : `Couldn’t copy ${quoteName(path)}`;
+    case "move": {
+      if (placeholder) return `${quoteName(path)} is in iCloud: press ↩ to download it first`;
+      if (PARTIAL_RE.test(name)) return `${quoteName(path)} is still downloading`;
+      if (dry && env("DL_TEST_FINDER_DIR", null) === null) return `move ${path}`;
+      let dest;
+      try {
+        dest = finderFolder();
+      } catch (e) {
+        return "Couldn’t ask Finder for its folder: allow Alfred to control Finder in Privacy & Security › Automation";
+      }
+      return moveToFolder(path, dest, cfg);
+    }
     case "copyurl": {
       const urls = whereFroms(path);
       if (!urls.length) return `No download address recorded for ${quoteName(path)}`;
