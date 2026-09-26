@@ -509,6 +509,49 @@ class AuditPass1Tests(Base):
         self.assertEqual(it["mods"]["alt"]["variables"]["dl_query"], "latest")
 
 
+class AuditPass2Tests(Base):
+    """Regressions for bugs found in the second audit."""
+
+    def test_home_is_only_abbreviated_as_a_prefix(self):
+        home = os.path.expanduser("~")
+        target = f"/nonexistent{home}/file.txt"
+        os.symlink(target, self.p("odd link"))
+        sub = files(self.dir)[0]["subtitle"]
+        self.assertIn(f"Broken link → {target}", sub)
+
+    def test_overflow_row_wording_when_searching(self):
+        for i in range(105):
+            open(self.p(f"report {i}.txt"), "wb").close()
+        self.assertTrue(items(self.dir)[-2]["title"].startswith("Showing the newest 100 of 105"))
+        self.assertTrue(items(self.dir, "report")[-2]["title"].startswith("Showing the best 100 of 105"))
+
+    def test_folder_without_search_permission(self):
+        touch(self.p("a.txt"))
+        os.chmod(self.dir, 0o444)  # readable but not searchable: not a privacy problem
+        it = items(self.dir)
+        self.assertEqual(it[0]["title"], "You don’t have permission to read this folder")
+
+    def test_blob_download_address(self):
+        f = touch(self.p("export.csv"))
+        data = plistlib.dumps(["blob:https://app.example.org/1234-abcd"], fmt=plistlib.FMT_BINARY)
+        subprocess.run(["xattr", "-wx", "com.apple.metadata:kMDItemWhereFroms", data.hex(), f], check=True)
+        self.assertIn("from app.example.org", files(self.dir)[0]["subtitle"])
+
+    def test_subfolder_mode_performance(self):
+        for d in range(50):
+            sub = self.p(f"Folder {d} (2026) [1080p] [5.1]")
+            os.makedirs(sub)
+            for i in range(200):
+                open(os.path.join(sub, f"f{i}.txt"), "wb").close()
+        sf(self.dir, include_subfolders="1")
+        t = time.perf_counter()
+        data = sf(self.dir, include_subfolders="1")
+        elapsed = time.perf_counter() - t
+        print(f"\n  50 folders x 200 files with subfolders: {elapsed * 1000:.0f} ms", file=sys.stderr)
+        self.assertLess(elapsed, 0.3)
+        self.assertTrue(data["items"][-2]["title"].startswith("Showing the newest 100 of 10,050"))
+
+
 class PerformanceTests(Base):
     def test_ten_thousand_files(self):
         for i in range(10000):

@@ -29,6 +29,11 @@ function expandPath(raw) {
   return p.length > 1 ? p.replace(/\/+$/, "") : p;
 }
 
+// "/Users/me/Downloads" -> "~/Downloads" (only as a prefix)
+function tilde(p) {
+  return p === HOME || p.startsWith(HOME + "/") ? "~" + p.slice(HOME.length) : p;
+}
+
 function flag(name, fallback) {
   const v = String(env(name, fallback ? "1" : "0")).trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes";
@@ -338,11 +343,12 @@ function calendarDaysAgo(t) {
 
 function applyFilters(entries, filters) {
   let out = entries;
+  const today = startOfDay(0), yesterday = startOfDay(1), week = startOfDay(6), month = startOfDay(30);
   for (const f of filters) {
-    if (f === "@today") out = out.filter((e) => e.sortTime >= startOfDay(0));
-    else if (f === "@yesterday") out = out.filter((e) => e.sortTime >= startOfDay(1) && e.sortTime < startOfDay(0));
-    else if (f === "@week") out = out.filter((e) => e.sortTime >= startOfDay(6));
-    else if (f === "@month") out = out.filter((e) => e.sortTime >= startOfDay(30));
+    if (f === "@today") out = out.filter((e) => e.sortTime >= today);
+    else if (f === "@yesterday") out = out.filter((e) => e.sortTime >= yesterday && e.sortTime < today);
+    else if (f === "@week") out = out.filter((e) => e.sortTime >= week);
+    else if (f === "@month") out = out.filter((e) => e.sortTime >= month);
     else if (f !== "@latest") out = out.filter((e) => kindsOf(e).includes(f));
   }
   return out;
@@ -409,7 +415,8 @@ function whereFroms(path) {
 }
 
 function sourceHost(urls) {
-  for (const u of urls) {
+  for (const raw of urls) {
+    const u = raw.replace(/^blob:/i, "");
     const m = u.match(/^[a-z][a-z0-9+.-]*:\/\/(?:[^@\/?#]*@)?([^\/?#:]+)/i);
     if (m) return m[1].replace(/^www\./, "");
   }
@@ -437,7 +444,7 @@ function linkLabel(path) {
   const target = FM.destinationOfSymbolicLinkAtPathError(path, null);
   if (target.isNil()) return "Symbolic link";
   const broken = !FM.fileExistsAtPath(path);
-  return `${broken ? "Broken link" : "Link"} → ${target.js.replace(HOME, "~")}`;
+  return `${broken ? "Broken link" : "Link"} → ${tilde(target.js)}`;
 }
 
 function fileItem(e, cfg, now, withSource) {
@@ -482,7 +489,7 @@ function folderItem(cfg) {
   return {
     type: "file",
     title: `Open ${name} Folder`,
-    subtitle: cfg.folder.replace(HOME, "~"),
+    subtitle: tilde(cfg.folder),
     arg: cfg.folder,
     icon: { path: "icons/folder.png" },
     quicklookurl: cfg.folder,
@@ -500,7 +507,7 @@ function folderItem(cfg) {
 
 function folderProblem(cfg) {
   const isDir = Ref();
-  const shown = cfg.folder.replace(HOME, "~");
+  const shown = tilde(cfg.folder);
   const configure = { valid: true, arg: "configure", variables: { dl_action: "configure" } };
   if (!FM.fileExistsAtPathIsDirectory(cfg.folder, isDir)) {
     return info("Downloads folder not found", `${shown} doesn't exist. ↩ Choose another folder in the Workflow’s Configuration`, "error", configure);
@@ -513,9 +520,9 @@ function folderProblem(cfg) {
 
 function permissionItem(cfg, error) {
   const detail = error && !error.isNil() && error.localizedDescription ? error.localizedDescription.js : "";
-  if (!FM.isReadableFileAtPath(cfg.folder)) {
+  if (!FM.isReadableFileAtPath(cfg.folder) || !FM.isExecutableFileAtPath(cfg.folder)) {
     // Plain Unix permissions: System Settings can't help
-    return info("You don’t have permission to read this folder", detail || cfg.folder.replace(HOME, "~"), "lock");
+    return info("You don’t have permission to read this folder", detail || tilde(cfg.folder), "lock");
   }
   // Readable by permissions but blocked: macOS privacy protection (TCC)
   return info(
@@ -573,12 +580,12 @@ function listItems(query) {
   const now = Date.now() / 1000;
   const items = list.slice(0, MAX_ITEMS).map((e, i) => fileItem(e, cfg, now, i < SOURCE_LOOKUPS));
   if (!items.length) {
-    if (!entries.length) items.push(info("The folder is empty", cfg.folder.replace(HOME, "~"), "empty"));
+    if (!entries.length) items.push(info("The folder is empty", tilde(cfg.folder), "empty"));
     else if (filters.includes("@latest")) items.push(info("No finished downloads", "Nothing matches in the folder", "empty"));
     else items.push(info("No matching downloads", `Nothing matches “${oneLine(query.trim())}”`, "empty"));
   }
   if (list.length > MAX_ITEMS) {
-    items.push(info(`Showing the newest ${MAX_ITEMS} of ${list.length.toLocaleString("en-US")}`, "Type to search, or add a filter like img, pdf or zip", "info"));
+    items.push(info(`Showing ${words.length ? "the best" : "the newest"} ${MAX_ITEMS} of ${list.length.toLocaleString("en-US")}`, "Type to search, or add a filter like img, pdf or zip", "info"));
   }
   if (truncated) items.push(info(`Showing the newest of the first ${MAX_ENTRIES.toLocaleString("en-US")} files`, "Turn off “Include subfolders” to see every file", "info"));
   items.push(folderItem(cfg));
