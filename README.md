@@ -49,7 +49,7 @@ Downloads still in progress in Safari, Chrome, Edge, Brave, Firefox or Opera are
 
 ### Configuration
 
-In the Workflow’s Configuration you can choose another folder to list, sort by date modified or created instead of date added, include files in subfolders, and show hidden files. Cleaning up old downloads is left to a dedicated workflow.
+In the Workflow’s Configuration you can choose another folder to list, sort by date modified or created instead of date added, include files in subfolders (up to four levels deep, bundles like apps are never opened up), and show hidden files. Cleaning up old downloads is left to a dedicated workflow.
 
 Every keyword can be changed in the Workflow’s Configuration.
 

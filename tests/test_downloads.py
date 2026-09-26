@@ -360,17 +360,12 @@ class FolderStateTests(Base):
         self.assertIn("locked", t)
 
     def test_tilde_and_trailing_slash(self):
-        home = os.path.expanduser("~")
-        tmp = tempfile.mkdtemp(prefix="dl-home-", dir=home) if os.access(home, os.W_OK) else None
-        if not tmp:
-            self.skipTest("home not writable")
-        try:
-            touch(os.path.join(tmp, "x.txt"))
-            rel = "~/" + os.path.basename(tmp) + "/"
-            self.assertEqual(titles(rel), ["x.txt"])
-            self.assertEqual(titles(os.path.basename(tmp)), ["x.txt"])  # relative to home
-        finally:
-            shutil.rmtree(tmp)
+        # read-only: a folder that doesn't exist, so nothing is written to the home folder
+        name = f"dl-test-missing-{os.getpid()}"
+        for raw in (f"~/{name}/", name, f"~/{name}//"):
+            it = items(raw)
+            self.assertEqual(it[0]["title"], "Downloads folder not found")
+            self.assertTrue(it[0]["subtitle"].startswith(f"~/{name} doesn’t exist"), (raw, it[0]["subtitle"]))
 
     def test_folder_row_name(self):
         other = os.path.join(self.tmp, "Inbox")
@@ -482,15 +477,9 @@ class AuditPass1Tests(Base):
 
     def test_tilde_with_user_name(self):
         import getpass
-        home = os.path.expanduser("~")
-        if not os.access(home, os.W_OK):
-            self.skipTest("home not writable")
-        tmp = tempfile.mkdtemp(prefix="dl-home-", dir=home)
-        try:
-            touch(os.path.join(tmp, "x.txt"))
-            self.assertEqual(titles(f"~{getpass.getuser()}/{os.path.basename(tmp)}"), ["x.txt"])
-        finally:
-            shutil.rmtree(tmp)
+        name = f"dl-test-missing-{os.getpid()}"
+        it = items(f"~{getpass.getuser()}/{name}")
+        self.assertTrue(it[0]["subtitle"].startswith(f"~/{name} doesn’t exist"), it[0]["subtitle"])
 
     def test_word_start_in_non_latin_names(self):
         touch(self.p("мир.txt"))
@@ -550,6 +539,37 @@ class AuditPass2Tests(Base):
         print(f"\n  50 folders x 200 files with subfolders: {elapsed * 1000:.0f} ms", file=sys.stderr)
         self.assertLess(elapsed, 0.3)
         self.assertTrue(data["items"][-2]["title"].startswith("Showing the newest 100 of 10,050"))
+
+
+class AuditPass3Tests(Base):
+    """Regressions for bugs found in the third audit."""
+
+    def test_source_shown_on_every_row(self):
+        data = plistlib.dumps(["https://example.net/f"], fmt=plistlib.FMT_BINARY)
+        for i in range(40):
+            f = self.p(f"f{i}.zip")
+            open(f, "wb").close()
+            subprocess.run(["xattr", "-wx", "com.apple.metadata:kMDItemWhereFroms", data.hex(), f], check=True)
+        subs = [i["subtitle"] for i in files(self.dir)]
+        self.assertEqual(len(subs), 40)
+        self.assertTrue(all("from example.net" in x for x in subs))
+
+    def test_no_copy_or_paste_of_unfinished_files(self):
+        part = touch(self.p("big.iso.crdownload"), b"x")
+        ph = touch(self.p(".doc.pdf.icloud"))
+        for act in ("copy", "paste"):
+            self.assertEqual(action(part, act, self.dir), "“big.iso.crdownload” is still downloading")
+            self.assertEqual(action(ph, act, self.dir), "“doc.pdf” is in iCloud: press ↩ to download it first")
+
+    def test_copy_path_of_icloud_file_is_its_real_path(self):
+        touch(self.p(".doc.pdf.icloud"))
+        it = files(self.dir)[0]
+        self.assertEqual(os.path.basename(it["text"]["copy"]), "doc.pdf")
+        self.assertEqual(os.path.basename(it["arg"]), ".doc.pdf.icloud")
+
+    def test_messages_use_typographic_apostrophes(self):
+        it = items(os.path.join(self.tmp, "nope"))
+        self.assertNotIn("'", it[0]["subtitle"])
 
 
 class PerformanceTests(Base):

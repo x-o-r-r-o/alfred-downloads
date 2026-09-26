@@ -16,7 +16,6 @@ const HOME = $.NSHomeDirectory().js;
 const MAX_ITEMS = 100; // rows sent to Alfred
 const MAX_ENTRIES = 20000; // stop scanning subfolders after this many entries
 const MAX_DEPTH = 4; // subfolder levels below the Downloads folder
-const SOURCE_LOOKUPS = 25; // rows that show the website a file came from
 
 // ---------- configuration ----------
 
@@ -447,7 +446,7 @@ function linkLabel(path) {
   return `${broken ? "Broken link" : "Link"} → ${tilde(target.js)}`;
 }
 
-function fileItem(e, cfg, now, withSource) {
+function fileItem(e, cfg, now) {
   const time = e.sortTime;
   const bits = [];
   let action = "open";
@@ -465,7 +464,7 @@ function fileItem(e, cfg, now, withSource) {
     if (e.dataless) bits.push("in iCloud");
   }
   if (e.rel) bits.push(`in ${e.rel}`);
-  if (withSource && !e.dir && !e.link) {
+  if (!e.dir && !e.link && !e.icloud) {
     const host = sourceHost(whereFroms(e.path));
     if (host) bits.push(`from ${host}`);
   }
@@ -477,7 +476,8 @@ function fileItem(e, cfg, now, withSource) {
     arg: e.path,
     icon: { type: "fileicon", path: e.path },
     quicklookurl: e.icloud ? undefined : e.path,
-    text: { copy: e.path, largetype: e.display },
+    // an iCloud placeholder's real file will appear next to it under its own name
+    text: { copy: e.icloud ? `${$(e.path).stringByDeletingLastPathComponent.js}/${e.display}` : e.path, largetype: e.display },
     variables: { dl_action: action },
     mods,
   };
@@ -510,7 +510,7 @@ function folderProblem(cfg) {
   const shown = tilde(cfg.folder);
   const configure = { valid: true, arg: "configure", variables: { dl_action: "configure" } };
   if (!FM.fileExistsAtPathIsDirectory(cfg.folder, isDir)) {
-    return info("Downloads folder not found", `${shown} doesn't exist. ↩ Choose another folder in the Workflow’s Configuration`, "error", configure);
+    return info("Downloads folder not found", `${shown} doesn’t exist. ↩ Choose another folder in the Workflow’s Configuration`, "error", configure);
   }
   if (!isDir[0]) {
     return info("Not a folder", `${shown} is a file. ↩ Choose a folder in the Workflow’s Configuration`, "error", configure);
@@ -578,7 +578,7 @@ function listItems(query) {
   }
 
   const now = Date.now() / 1000;
-  const items = list.slice(0, MAX_ITEMS).map((e, i) => fileItem(e, cfg, now, i < SOURCE_LOOKUPS));
+  const items = list.slice(0, MAX_ITEMS).map((e) => fileItem(e, cfg, now));
   if (!items.length) {
     if (!entries.length) items.push(info("The folder is empty", tilde(cfg.folder), "empty"));
     else if (filters.includes("@latest")) items.push(info("No finished downloads", "Nothing matches in the folder", "empty"));
@@ -627,6 +627,14 @@ function copyFile(path) {
   const pb = pasteboard();
   pb.clearContents;
   return pb.writeObjects($([$.NSURL.fileURLWithPath(path)]));
+}
+
+function pasteFile(path, dry) {
+  if (!copyFile(path)) return `Couldn’t copy ${quoteName(path)}`;
+  if (dry) return `paste ${path}`;
+  delay(0.25); // let Alfred's window close and the previous app take focus
+  Application("System Events").keystroke("v", { using: "command down" });
+  return "";
 }
 
 function trash(path, cfg) {
@@ -704,14 +712,11 @@ function doAction(path) {
       return msg;
     }
     case "copy":
+    case "paste":
+      if (placeholder) return `${quoteName(path)} is in iCloud: press ↩ to download it first`;
+      if (PARTIAL_RE.test(name)) return `${quoteName(path)} is still downloading`;
+      if (action === "paste") return pasteFile(path, dry);
       return copyFile(path) ? `Copied ${quoteName(path)} to the clipboard` : `Couldn’t copy ${quoteName(path)}`;
-    case "paste": {
-      if (!copyFile(path)) return `Couldn’t copy ${quoteName(path)}`;
-      if (dry) return `paste ${path}`;
-      delay(0.25);
-      Application("System Events").keystroke("v", { using: "command down" });
-      return "";
-    }
     case "copyurl": {
       const urls = whereFroms(path);
       if (!urls.length) return `No download address recorded for ${quoteName(path)}`;
