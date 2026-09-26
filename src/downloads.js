@@ -23,20 +23,25 @@ const SOURCE_LOOKUPS = 25; // rows that show the website a file came from
 function expandPath(raw) {
   let p = String(raw || "").trim();
   if (!p) p = "~/Downloads";
-  if (p === "~" || p.startsWith("~/")) p = HOME + p.slice(1);
-  else if (!p.startsWith("/")) p = HOME + "/" + p;
+  if (p.startsWith("~")) p = $(p).stringByExpandingTildeInPath.js;
+  if (!p.startsWith("/")) p = HOME + "/" + p;
   p = $(p).stringByStandardizingPath.js;
   return p.length > 1 ? p.replace(/\/+$/, "") : p;
+}
+
+function flag(name, fallback) {
+  const v = String(env(name, fallback ? "1" : "0")).trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
 }
 
 function config() {
   return {
     folder: expandPath(env("downloads_folder", "")),
-    hidden: env("show_hidden", "0") === "1",
-    subfolders: env("include_subfolders", "0") === "1",
+    hidden: flag("show_hidden", false),
+    subfolders: flag("include_subfolders", false),
     sortBy: { added: "added", modified: "modified", created: "created" }[env("sort_by", "added")] || "added",
     keyword: env("keyword_dls", "dls"),
-    reopen: env("reopen_after_trash", "1") !== "0",
+    reopen: flag("reopen_after_trash", true),
   };
 }
 
@@ -295,13 +300,13 @@ function scan(cfg) {
 // ---------- matching and sorting ----------
 
 function fold(s) {
-  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 // 3: starts a word, 2: substring, 1: letters in order, 0: no match
 function matchScore(hay, needle) {
   const i = hay.indexOf(needle);
-  if (i === 0 || (i > 0 && /[^a-z0-9]/.test(hay[i - 1]))) return 3;
+  if (i === 0 || (i > 0 && /[^\p{L}\p{N}]/u.test(hay[i - 1]))) return 3;
   if (i > 0) return 2;
   let j = 0;
   for (let k = 0; k < hay.length && j < needle.length; k++) if (hay[k] === needle[j]) j++;
@@ -320,6 +325,15 @@ function startOfDay(daysAgo) {
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - daysAgo);
   return d.getTime() / 1000;
+}
+
+// Whole calendar days between t and today (safe across daylight saving changes)
+function calendarDaysAgo(t) {
+  const d = new Date(t * 1000);
+  d.setHours(12, 0, 0, 0);
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  return Math.round((today - d) / 86400000);
 }
 
 function applyFilters(entries, filters) {
@@ -344,8 +358,12 @@ function formatSize(n) {
     v /= 1000;
     u++;
   }
-  const digits = u === 0 ? 0 : u === 1 ? 1 : 2;
-  return `${v.toFixed(digits).replace(/\.0+$/, "")} ${units[u]}`;
+  const digits = () => (u === 0 ? 0 : u === 1 ? 1 : 2);
+  if (Number(v.toFixed(digits())) >= 1000 && u < units.length - 1) {
+    v /= 1000; // 999,999 bytes is "1 MB", not "1000 KB"
+    u++;
+  }
+  return `${v.toFixed(digits()).replace(/\.0+$/, "")} ${units[u]}`;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -353,17 +371,17 @@ function relativeTime(t, now) {
   const s = now - t;
   if (s < 45) return "just now";
   if (s < 90) return "1 min ago";
-  if (s < 3600) return `${Math.round(s / 60)} min ago`;
-  if (t >= startOfDay(0)) return `${Math.round(s / 3600)} h ago`;
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (t >= startOfDay(0)) return `${Math.floor(s / 3600)} h ago`;
   if (t >= startOfDay(1)) return "yesterday";
-  if (t >= startOfDay(6)) return `${Math.round((startOfDay(0) - t) / 86400 + 0.5)} days ago`;
+  if (t >= startOfDay(6)) return `${calendarDaysAgo(t)} days ago`;
   const d = new Date(t * 1000);
   const thisYear = new Date().getFullYear();
   return `${d.getDate()} ${MONTHS[d.getMonth()]}${d.getFullYear() === thisYear ? "" : " " + d.getFullYear()}`;
 }
 
 function oneLine(s) {
-  return String(s).replace(/[\r\n\t]+/g, " ");
+  return String(s).replace(/[\x00-\x1f\x7f\u2028\u2029]+/g, " ");
 }
 
 // ---------- extended attributes: where a file was downloaded from ----------
@@ -404,8 +422,8 @@ function info(title, subtitle, icon = "info", extra = {}) {
   return Object.assign({ title, subtitle: subtitle || "", valid: false, icon: { path: `icons/${icon}.png` } }, extra);
 }
 
-function modsFor(e, path) {
-  const m = (action, subtitle, valid = true) => ({ arg: path, valid, subtitle, variables: { dl_action: action } });
+function modsFor(e, path, query) {
+  const m = (action, subtitle, valid = true) => ({ arg: path, valid, subtitle, variables: { dl_action: action, dl_query: query } });
   return {
     cmd: m("reveal", "Reveal in Finder"),
     alt: m("trash", "Move to Trash"),
@@ -444,7 +462,7 @@ function fileItem(e, cfg, now, withSource) {
     const host = sourceHost(whereFroms(e.path));
     if (host) bits.push(`from ${host}`);
   }
-  const mods = modsFor(e, e.path);
+  const mods = modsFor(e, e.path, cfg.query);
   return {
     type: "file",
     title: oneLine(e.display),
@@ -510,6 +528,7 @@ function permissionItem(cfg, error) {
 
 function listItems(query) {
   const cfg = config();
+  cfg.query = query;
   const problem = folderProblem(cfg);
   if (problem) return { items: [problem] };
   const { entries, error, truncated } = scan(cfg);
@@ -527,7 +546,9 @@ function listItems(query) {
       const name = fold(e.display);
       let score = 0, ok = true;
       for (const w of words) {
-        const s = Math.max(matchScore(name, w), matchScore(hay, w) === 1 ? 0 : matchScore(hay, w) - 1);
+        // the subfolder path counts, but less than the name and never as a loose match
+        const inPath = hay === name ? 0 : matchScore(hay, w);
+        const s = Math.max(matchScore(name, w), inPath > 1 ? inPath - 1 : 0);
         if (!s) {
           ok = false;
           break;
@@ -541,10 +562,12 @@ function listItems(query) {
     }
     list = scored;
   }
-  list.sort((a, b) => (b.score || 0) - (a.score || 0) || b.sortTime - a.sortTime || (a.display < b.display ? -1 : 1));
+  list.sort((a, b) => (b.score || 0) - (a.score || 0) || b.sortTime - a.sortTime || (a.display < b.display ? -1 : a.display > b.display ? 1 : 0));
   if (filters.includes("@latest")) {
-    const done = list.filter((e) => !e.partial && !e.icloud);
-    list = done.length ? [done[0]] : [];
+    // the most recent finished download among the matches, whatever the search score
+    let best = null;
+    for (const e of list) if (!e.partial && !e.icloud && (!best || e.sortTime > best.sortTime)) best = e;
+    list = best ? [best] : [];
   }
 
   const now = Date.now() / 1000;
@@ -568,6 +591,8 @@ function listItems(query) {
 
 function inside(path, folder) {
   // Resolve symlinks in the folder and the parent directory, never in the item itself
+  const last = $(path).lastPathComponent.js;
+  if (!last || last === "." || last === ".." || /(^|\/)\.\.?(\/|$)/.test(path)) return false;
   const real = (p) => $(p).stringByResolvingSymlinksInPath.js;
   const parent = real($(path).stringByDeletingLastPathComponent.js);
   const full = `${parent}/${$(path).lastPathComponent.js}`;

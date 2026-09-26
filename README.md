@@ -45,6 +45,8 @@ Configure the Hotkey to show the most recent finished download, then press <kbd>
 
 Downloads still in progress in Safari, Chrome, Edge, Brave, Firefox or Opera are marked “Downloading…” and the list refreshes on its own while they grow. <kbd>↩</kbd> reveals them instead of opening a half-finished file. Files stored only in iCloud are marked, and <kbd>↩</kbd> starts downloading them.
 
+![A download in progress](images/progress.png)
+
 ### Configuration
 
 In the Workflow’s Configuration you can choose another folder to list, sort by date modified or created instead of date added, include files in subfolders, and show hidden files. Cleaning up old downloads is left to a dedicated workflow.

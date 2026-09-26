@@ -447,6 +447,68 @@ class ActionTests(Base):
         self.assertFalse(os.path.exists(f))
 
 
+class AuditPass1Tests(Base):
+    """Regressions for bugs found in the first audit."""
+
+    def test_trash_refuses_dot_components(self):
+        trash = os.path.join(self.tmp, "Trash")
+        os.makedirs(trash)
+        os.makedirs(self.p("sub"))
+        for bad in (self.p("sub", ".."), self.p("."), self.p("sub", "..", "sub")):
+            out = action(bad, "trash", self.dir, DL_TEST_TRASH_DIR=trash)
+            self.assertTrue(out.startswith("Not moved"), (bad, out))
+        self.assertTrue(os.path.isdir(self.p("sub")))
+
+    def test_latest_with_search_is_newest_match(self):
+        touch(self.p("invoice-a.pdf"))
+        touch(self.p("xinvoice.pdf"))
+        self.assertEqual(titles(self.dir, "latest invoice"), ["xinvoice.pdf"])
+
+    def test_size_rounds_up_to_next_unit(self):
+        touch(self.p("a.bin"), b"x" * 999_999)
+        touch(self.p("b.bin"), b"x" * 1000)
+        sub = {i["title"]: i["subtitle"] for i in files(self.dir)}
+        self.assertTrue(sub["a.bin"].startswith("1 MB ·"), sub)
+        self.assertTrue(sub["b.bin"].startswith("1 KB ·"), sub)
+
+    def test_control_characters_in_names(self):
+        touch(self.p("a\tb\x01c\u2028d.txt"))
+        self.assertEqual(titles(self.dir), ["a b c d.txt"])
+
+    def test_checkbox_true_false_values(self):
+        touch(self.p(".h"))
+        self.assertEqual(titles(self.dir, show_hidden="true"), [".h"])
+        self.assertEqual(titles(self.dir, show_hidden="false"), [])
+
+    def test_tilde_with_user_name(self):
+        import getpass
+        home = os.path.expanduser("~")
+        if not os.access(home, os.W_OK):
+            self.skipTest("home not writable")
+        tmp = tempfile.mkdtemp(prefix="dl-home-", dir=home)
+        try:
+            touch(os.path.join(tmp, "x.txt"))
+            self.assertEqual(titles(f"~{getpass.getuser()}/{os.path.basename(tmp)}"), ["x.txt"])
+        finally:
+            shutil.rmtree(tmp)
+
+    def test_word_start_in_non_latin_names(self):
+        touch(self.p("мир.txt"))
+        touch(self.p("приветмир.txt"))
+        self.assertEqual(titles(self.dir, "мир"), ["мир.txt", "приветмир.txt"])
+
+    def test_days_ago_at_midnight(self):
+        import datetime
+        midnight = datetime.datetime.combine(datetime.date.today() - datetime.timedelta(days=6), datetime.time())
+        touch(self.p("six.txt"), mtime=midnight.timestamp())
+        self.assertIn("6 days ago", files(self.dir, sort_by="modified")[0]["subtitle"])
+
+    def test_query_travels_with_trash_modifier(self):
+        touch(self.p("a.txt"))
+        it = files(self.dir, "latest")[0]
+        self.assertEqual(it["mods"]["alt"]["variables"]["dl_query"], "latest")
+
+
 class PerformanceTests(Base):
     def test_ten_thousand_files(self):
         for i in range(10000):
