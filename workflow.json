@@ -56,6 +56,33 @@
       }
     },
     {
+      "type": "popupbutton",
+      "variable": "primary_action",
+      "label": "↩ Return",
+      "description": "What ↩ does with a download; the modifier that did it opens the file instead",
+      "config": {
+        "default": "open",
+        "pairs": [
+          [
+            "Open the file",
+            "open"
+          ],
+          [
+            "Reveal in Finder",
+            "reveal"
+          ],
+          [
+            "Copy the file",
+            "copy"
+          ],
+          [
+            "Paste the file",
+            "paste"
+          ]
+        ]
+      }
+    },
+    {
       "type": "checkbox",
       "variable": "include_subfolders",
       "label": "Options",
@@ -107,6 +134,32 @@
       "id": "arg_latest",
       "type": "argument",
       "argument": "latest"
+    },
+    {
+      "id": "hk_copy_latest",
+      "type": "hotkey",
+      "note": "Copy the latest download to the clipboard"
+    },
+    {
+      "id": "arg_copy_latest",
+      "type": "argument",
+      "argument": "copy"
+    },
+    {
+      "id": "hk_paste_latest",
+      "type": "hotkey",
+      "note": "Paste the latest download into the frontmost app"
+    },
+    {
+      "id": "arg_paste_latest",
+      "type": "argument",
+      "argument": "paste"
+    },
+    {
+      "id": "act_latest",
+      "type": "script",
+      "script": "osascript -l JavaScript ./downloads.js latest \"$1\"",
+      "note": "Copy or paste the latest finished download (the action is the argument)"
     },
     {
       "id": "act",
@@ -164,6 +217,26 @@
     },
     {
       "from": "act",
+      "to": "notify"
+    },
+    {
+      "from": "hk_copy_latest",
+      "to": "arg_copy_latest"
+    },
+    {
+      "from": "arg_copy_latest",
+      "to": "act_latest"
+    },
+    {
+      "from": "hk_paste_latest",
+      "to": "arg_paste_latest"
+    },
+    {
+      "from": "arg_paste_latest",
+      "to": "act_latest"
+    },
+    {
+      "from": "act_latest",
       "to": "notify"
     }
   ]

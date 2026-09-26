@@ -24,11 +24,18 @@ Raycast demand this workflow replaces (downloads, 2026-09-26):
 - [x] 10,000 files listed in ~120 ms, 50,000 in ~0.4 s (getattrlistbulk, no cache needed; the top folder is never truncated)
 - [ ] ~~Universal Action “Move to Downloads”~~: dropped, Alfred’s own Move To file action covers it
 
+## Features (v1.1, round 4)
+- [x] Hotkeys to copy or paste the latest finished download without opening Alfred (Raycast’s Copy/Paste Latest Download; forum “Open most recent download; pbcopy”; Raycast #12880 attach latest download to email)
+- [x] ↩ configurable: open, reveal, copy or paste (Raycast added a Primary Action preference on 2026-09-09); the displaced modifier opens instead
+- [x] `from <site>` filter: files downloaded from a website (reads `kMDItemWhereFroms` only when used; ~350 ms for 10,000 files)
+- [x] Configuration robustness: empty checkbox/popup values fall back to defaults, popup values trimmed and case-insensitive, an empty keyword can't break “reopen after Trash”, a folder whose name ends with a space still works
+
 ## Known limitations
 - Filter words (`pdf`, `today`, `latest`…) at the start of the query are always read as filters, so a file literally named “latest” is found via `dls latest latest`.
 - In-progress detection relies on browser suffixes (`.crdownload`, `.part`, `.download`, `.partial`, `.opdownload`, `.!qB`); other download managers show their files as finished.
 - ⌘⌥↩ copies the first web address recorded by macOS (`kMDItemWhereFroms`); files saved from `data:` URLs or by apps that don’t record it have none.
 - Subfolder mode stops after 20,000 entries and four levels; the top folder is always read in full.
+- `from` reads each file’s download address, so it is slower than other filters in very large folders (about 350 ms for 10,000 files).
 - Dates and sizes are formatted in English (“3 days ago”, “1.3 MB”) regardless of the system locale.
 
 ## Verify in real Alfred
@@ -39,6 +46,17 @@ Raycast demand this workflow replaces (downloads, 2026-09-26):
 - [ ] The Hotkey opens “dls latest”; `cmd+alt` modifier and `fn` modifier subtitles show.
 - [ ] A Chrome/Safari download in progress refreshes every second and becomes a normal row when finished.
 - [ ] “Choose another folder” (missing folder) opens the workflow in Alfred Preferences.
+
+## Ideas for v1.1
+Ranked by value/risk (round 4 research: raycast/extensions Downloads Manager issues and changelog, Alfred forum/Gallery titles):
+1. **Extra folders** (e.g. iCloud Drive › Downloads, a browser’s custom folder): a second filepicker, merged newest first (Raycast #23416, #29951/#30503 iCloud Downloads users). Needs `inside()` to accept several roots.
+2. **External Trigger `latest`** taking an action argument (open/reveal/copy/paste/move/copyurl) so other workflows, Shortcuts and AppleScript can act on the latest download; `downloads.js latest <action>` already exists.
+3. **Share / AirDrop** the selected download (Raycast #12779, #13265, #15985, #16613). NSSharingService from osascript needs a window and run loop; investigate before promising.
+4. **Open latest installer**: `dls latest dmg` already works; a “mount and open the app inside” action (forum “OpenDL”) would need hdiutil and is riskier.
+5. **Grid View** (Alfred 5.5) for `dls img` thumbnails.
+6. **Search in Spotlight metadata/content** (Raycast #16942) via `mdfind -onlyin`; slow and privacy-sensitive.
+7. **Localized dates and sizes** (currently English).
+8. **Rename** a download from Alfred.
 
 ## Tech
 - **Stack:** JXA (`getattrlistbulk` via the ObjC bridge, NSWorkspace, NSPasteboard) + Alfred Script Filter JSON.

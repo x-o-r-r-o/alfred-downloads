@@ -32,6 +32,7 @@ Type a filter after the keyword to see one kind of file, then optionally a searc
 * `today`, `yesterday`, `week`, `month` for recent downloads.
 * `big` for the largest files first, to see what takes up space.
 * `latest` for the most recent finished download.
+* `from` and a website for files downloaded from it, like `dls from github`.
 
 Filters combine: `dls img today`.
 
@@ -40,6 +41,8 @@ Filters combine: `dls img today`.
 ### Latest Download
 
 Configure the Hotkey to show the most recent finished download, then press <kbd>↩</kbd> to open it or use any modifier above. Unfinished downloads are skipped. The same list appears via the `dls latest` keyword.
+
+Configure the Copy and Paste Hotkeys to copy the latest finished download to the clipboard, or paste it into the frontmost app, without opening Alfred: handy for attaching the file you just downloaded to an email or a chat.
 
 ![The latest download](images/latest.png)
 
@@ -51,7 +54,7 @@ Downloads still in progress in Safari, Chrome, Edge, Brave, Firefox or Opera are
 
 ### Configuration
 
-In the Workflow’s Configuration you can choose another folder to list, sort by date modified or created instead of date added, include files in subfolders (up to four levels deep and 20,000 files, bundles like apps are never opened up), and show hidden files. Cleaning up old downloads is left to a dedicated workflow.
+In the Workflow’s Configuration you can choose another folder to list, sort by date modified or created instead of date added, make <kbd>↩</kbd> reveal, copy or paste a download instead of opening it (the modifier that did so then opens the file), include files in subfolders (up to four levels deep and 20,000 files, bundles like apps are never opened up), and show hidden files. Cleaning up old downloads is left to a dedicated workflow.
 
 Every keyword can be changed in the Workflow’s Configuration.
 

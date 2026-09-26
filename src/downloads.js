@@ -20,8 +20,11 @@ const MAX_DEPTH = 4; // subfolder levels below the Downloads folder
 // ---------- configuration ----------
 
 function expandPath(raw) {
-  let p = String(raw || "").trim();
-  if (!p) p = "~/Downloads";
+  let p = String(raw || "");
+  // Alfred passes the filepicker value as is; only trim when the untrimmed path doesn't exist,
+  // so a folder whose name really ends with a space still works
+  if (p.trim() !== p && !FM.fileExistsAtPath($(p).stringByExpandingTildeInPath.js)) p = p.trim();
+  if (!p.trim()) p = "~/Downloads";
   if (p.startsWith("~")) p = $(p).stringByExpandingTildeInPath.js;
   if (!p.startsWith("/")) p = HOME + "/" + p;
   p = $(p).stringByStandardizingPath.js;
@@ -33,20 +36,32 @@ function tilde(p) {
   return p === HOME || p.startsWith(HOME + "/") ? "~" + p.slice(HOME.length) : p;
 }
 
+// Checkboxes arrive as "1"/"0"; an empty or unknown value means the default
 function flag(name, fallback) {
-  const v = String(env(name, fallback ? "1" : "0")).trim().toLowerCase();
-  return v === "1" || v === "true" || v === "yes";
+  const v = String(env(name, "")).trim().toLowerCase();
+  if (["1", "true", "yes"].includes(v)) return true;
+  if (["0", "false", "no"].includes(v)) return false;
+  return fallback;
 }
 
-const SORTS = new Set(["added", "modified", "created"]);
+// A popup value, or the default when it's missing or not one of the choices
+function choice(name, allowed, fallback) {
+  const v = String(env(name, "")).trim().toLowerCase();
+  return allowed.includes(v) ? v : fallback;
+}
+
+const SORTS = ["added", "modified", "created"];
+const PRIMARY = ["open", "reveal", "copy", "paste"];
 
 function config() {
   return {
     folder: expandPath(env("downloads_folder", "")),
     hidden: flag("show_hidden", false),
     subfolders: flag("include_subfolders", false),
-    sortBy: SORTS.has(env("sort_by", "added")) ? env("sort_by", "added") : "added",
-    keyword: env("keyword_dls", "dls"),
+    sortBy: choice("sort_by", SORTS, "added"),
+    primary: choice("primary_action", PRIMARY, "open"),
+    // a required keyword left empty would reopen Alfred with just the query
+    keyword: String(env("keyword_dls", "")).trim() || "dls",
     reopen: flag("reopen_after_trash", true),
   };
 }
@@ -333,9 +348,14 @@ function matchScore(hay, needle) {
 
 function parseQuery(query) {
   const words = query.trim().split(/\s+/).filter(Boolean);
-  const filters = [];
-  while (words.length && FILTERS[words[0].toLowerCase()]) filters.push(FILTERS[words.shift().toLowerCase()]);
-  return { filters, words: words.map(fold) };
+  const filters = [], sites = [];
+  for (;;) {
+    const w = words.length ? words[0].toLowerCase() : "";
+    if (FILTERS[w]) filters.push(FILTERS[words.shift().toLowerCase()]);
+    else if (w === "from" && words.length > 1) sites.push(fold(words.splice(0, 2)[1]));
+    else break;
+  }
+  return { filters, words: words.map(fold), sites };
 }
 
 function startOfDay(daysAgo) {
@@ -463,13 +483,15 @@ function info(title, subtitle, icon = "info", extra = {}) {
   return Object.assign({ title, subtitle: subtitle || "", valid: false, icon: { path: `icons/${icon}.png` } }, extra);
 }
 
-function modsFor(e, path, query) {
+function modsFor(e, path, query, primary) {
   const m = (action, subtitle, valid = true) => ({ arg: path, valid, subtitle, variables: { dl_action: action, dl_query: query } });
+  // when ↩ is set to reveal, copy or paste, the modifier that did that opens the file instead
+  const mod = (action, subtitle) => (action === primary ? m("open", "Open the file") : m(action, subtitle));
   return {
-    cmd: m("reveal", "Reveal in Finder"),
+    cmd: mod("reveal", "Reveal in Finder"),
     alt: m("trash", "Move to Trash"),
-    ctrl: m("copy", "Copy the file to the clipboard"),
-    fn: m("paste", "Paste the file into the frontmost app"),
+    ctrl: mod("copy", "Copy the file to the clipboard"),
+    fn: mod("paste", "Paste the file into the frontmost app"),
     shift: m("move", "Move to the folder open in Finder"),
     "cmd+alt": m("copyurl", "Copy the address it was downloaded from"),
   };
@@ -485,7 +507,8 @@ function linkLabel(path) {
 function fileItem(e, cfg, now) {
   const time = e.sortTime;
   const bits = [];
-  let action = "open";
+  // iCloud placeholders always download on ↩; unfinished downloads are revealed
+  let action = e.icloud ? "open" : cfg.primary;
   let brokenLink = false;
   if (e.partial) {
     bits.push(e.dir ? "Downloading…" : `Downloading… ${formatSize(e.size)} so far`);
@@ -506,10 +529,10 @@ function fileItem(e, cfg, now) {
   }
   if (e.rel) bits.push(`in ${e.rel}`);
   if (!e.dir && !e.link && !e.icloud) {
-    const host = sourceHost(whereFroms(e.path));
+    const host = sourceHost(e.urls === undefined ? whereFroms(e.path) : e.urls);
     if (host) bits.push(`from ${host}`);
   }
-  const mods = modsFor(e, e.path, cfg.query);
+  const mods = modsFor(e, e.path, cfg.query, e.icloud ? "open" : cfg.primary);
   return {
     // Alfred hides "file" rows whose path doesn't resolve; a broken link is still worth listing (and trashing)
     type: brokenLink ? "file:skipcheck" : "file",
@@ -576,6 +599,25 @@ function permissionItem(cfg, error) {
   );
 }
 
+function setSortTimes(entries, cfg) {
+  for (const e of entries) {
+    e.sortTime = cfg.sortBy === "modified" ? e.modified : cfg.sortBy === "created" ? e.created || e.added : e.added;
+  }
+}
+
+function newestFinished(list) {
+  let best = null;
+  for (const e of list) if (!e.partial && !e.icloud && (!best || e.sortTime > best.sortTime)) best = e;
+  return best;
+}
+
+// "from github" matches files downloaded from github.com (or any address that contains the word)
+function fromSite(e, word) {
+  if (e.dir || e.link || e.icloud) return false;
+  if (e.urls === undefined) e.urls = whereFroms(e.path);
+  return e.urls.some((u) => fold(sourceHost([u])).includes(word));
+}
+
 function listItems(query) {
   const cfg = config();
   cfg.query = query;
@@ -584,11 +626,10 @@ function listItems(query) {
   const { entries, error, truncated } = scan(cfg);
   if (error) return { items: [permissionItem(cfg, error), folderItem(cfg)] };
 
-  for (const e of entries) {
-    e.sortTime = cfg.sortBy === "modified" ? e.modified : cfg.sortBy === "created" ? e.created || e.added : e.added;
-  }
-  const { filters, words } = parseQuery(query);
+  setSortTimes(entries, cfg);
+  const { filters, words, sites } = parseQuery(query);
   let list = applyFilters(entries, filters);
+  if (sites.length) list = list.filter((e) => sites.every((w) => fromSite(e, w)));
   if (words.length) {
     const scored = [];
     for (const e of list) {
@@ -617,8 +658,7 @@ function listItems(query) {
     (a.display < b.display ? -1 : a.display > b.display ? 1 : 0));
   if (filters.includes("@latest")) {
     // the most recent finished download among the matches, whatever the search score
-    let best = null;
-    for (const e of list) if (!e.partial && !e.icloud && (!best || e.sortTime > best.sortTime)) best = e;
+    const best = newestFinished(list);
     list = best ? [best] : [];
   }
 
@@ -627,6 +667,7 @@ function listItems(query) {
   if (!items.length) {
     if (!entries.length) items.push(info("The folder is empty", tilde(cfg.folder), "empty"));
     else if (filters.includes("@latest")) items.push(info("No finished downloads", "Nothing matches in the folder", "empty"));
+    else if (sites.length && !words.length) items.push(info("No downloads from that website", `Nothing was downloaded from “${oneLine(sites.join(" "))}”`, "empty"));
     else items.push(info("No matching downloads", `Nothing matches “${oneLine(query.trim())}”`, "empty"));
   }
   if (list.length > MAX_ITEMS) {
@@ -752,9 +793,9 @@ function reopenAlfred(cfg) {
   } catch (e) {} // the file is already in the Trash; the notification still says so
 }
 
-function doAction(path) {
+function doAction(path, forced) {
   const cfg = config();
-  const action = env("dl_action", "open");
+  const action = forced || env("dl_action", "open");
   const dry = env("DL_TEST_DRYRUN", "") === "1";
   const ws = $.NSWorkspace.sharedWorkspace;
 
@@ -835,6 +876,22 @@ function doAction(path) {
   }
 }
 
+// Act on the most recent finished download straight from a Hotkey, without showing Alfred
+const LATEST_ACTIONS = ["open", "reveal", "copy", "paste", "move", "copyurl"];
+function doLatest(action) {
+  action = String(action || "").trim().toLowerCase();
+  if (!LATEST_ACTIONS.includes(action)) return `Unknown action for the latest download: ${oneLine(action)}`;
+  const cfg = config();
+  const problem = folderProblem(cfg);
+  if (problem) return `${problem.title}: ${tilde(cfg.folder)}`;
+  const { entries, error } = scan(cfg);
+  if (error) return "Alfred can’t read the Downloads folder: allow it in Privacy & Security › Files and Folders";
+  setSortTimes(entries, cfg);
+  const best = newestFinished(entries);
+  if (!best) return "No finished downloads";
+  return doAction(best.path, action);
+}
+
 // ---------- entry ----------
 
 function run(argv) {
@@ -843,12 +900,15 @@ function run(argv) {
   try {
     switch (cmd) {
       case "list": return JSON.stringify(Object.assign({ skipknowledge: true }, listItems(query)));
-      case "action": return doAction(query);
+      // an empty result must print nothing at all (osascript prints "" as a blank line), so the
+      // Notification, set to show only when populated, stays quiet after a silent success
+      case "action": return doAction(query) || undefined;
+      case "latest": return doLatest(query) || undefined;
       default: return JSON.stringify({ items: [info(`Unknown command: ${cmd}`, "", "error")] });
     }
   } catch (e) {
     const msg = String(e && e.message ? e.message : e);
-    if (cmd === "action") return `Downloads error: ${msg}`;
+    if (cmd === "action" || cmd === "latest") return `Downloads error: ${msg}`;
     return JSON.stringify({ items: [info("Downloads error", msg, "error")] });
   }
 }

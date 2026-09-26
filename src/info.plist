@@ -8,6 +8,58 @@
 	<string>Productivity</string>
 	<key>connections</key>
 	<dict>
+		<key>1CF28492-BF91-5A90-8311-CB63F5EF61FA</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>38EC9644-36E8-5193-82EA-B68DD7AAF297</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>21721A0D-0560-58B9-BB34-AC5AE22B88B4</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>361BCAC9-8ADA-5D66-AE31-9D45B90F0710</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>361BCAC9-8ADA-5D66-AE31-9D45B90F0710</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>52D26A22-859B-54B4-A681-361BE0FEF55E</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>38EC9644-36E8-5193-82EA-B68DD7AAF297</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>52D26A22-859B-54B4-A681-361BE0FEF55E</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
 		<key>3B029FF8-F78D-53CE-AF13-E61B1C60E58D</key>
 		<array>
 			<dict>
@@ -26,6 +78,19 @@
 			<dict>
 				<key>destinationuid</key>
 				<string>6424214A-FF72-5E76-96E1-AD1549970F9E</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>52D26A22-859B-54B4-A681-361BE0FEF55E</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>C8FD4CFD-9B57-5FF9-9DE8-3E39E0A55F9D</string>
 				<key>modifiers</key>
 				<integer>0</integer>
 				<key>modifiersubtext</key>
@@ -233,6 +298,125 @@
 		<dict>
 			<key>config</key>
 			<dict>
+				<key>action</key>
+				<integer>0</integer>
+				<key>argument</key>
+				<integer>0</integer>
+				<key>focusedappvariable</key>
+				<false/>
+				<key>focusedappvariablename</key>
+				<string></string>
+				<key>hotkey</key>
+				<integer>0</integer>
+				<key>hotmod</key>
+				<integer>0</integer>
+				<key>hotstring</key>
+				<string></string>
+				<key>leftcursor</key>
+				<false/>
+				<key>modsmode</key>
+				<integer>0</integer>
+				<key>relatedAppsMode</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.trigger.hotkey</string>
+			<key>uid</key>
+			<string>1CF28492-BF91-5A90-8311-CB63F5EF61FA</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argument</key>
+				<string>copy</string>
+				<key>passthroughargument</key>
+				<false/>
+				<key>variables</key>
+				<dict/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.utility.argument</string>
+			<key>uid</key>
+			<string>38EC9644-36E8-5193-82EA-B68DD7AAF297</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>action</key>
+				<integer>0</integer>
+				<key>argument</key>
+				<integer>0</integer>
+				<key>focusedappvariable</key>
+				<false/>
+				<key>focusedappvariablename</key>
+				<string></string>
+				<key>hotkey</key>
+				<integer>0</integer>
+				<key>hotmod</key>
+				<integer>0</integer>
+				<key>hotstring</key>
+				<string></string>
+				<key>leftcursor</key>
+				<false/>
+				<key>modsmode</key>
+				<integer>0</integer>
+				<key>relatedAppsMode</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.trigger.hotkey</string>
+			<key>uid</key>
+			<string>21721A0D-0560-58B9-BB34-AC5AE22B88B4</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argument</key>
+				<string>paste</string>
+				<key>passthroughargument</key>
+				<false/>
+				<key>variables</key>
+				<dict/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.utility.argument</string>
+			<key>uid</key>
+			<string>361BCAC9-8ADA-5D66-AE31-9D45B90F0710</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>osascript -l JavaScript ./downloads.js latest "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>52D26A22-859B-54B4-A681-361BE0FEF55E</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
 				<key>concurrently</key>
 				<false/>
 				<key>escaping</key>
@@ -304,6 +488,7 @@ Type a filter after the keyword to see one kind of file, then optionally a searc
 * `today`, `yesterday`, `week`, `month` for recent downloads.
 * `big` for the largest files first, to see what takes up space.
 * `latest` for the most recent finished download.
+* `from` and a website for files downloaded from it, like `dls from github`.
 
 Filters combine: `dls img today`.
 
@@ -311,18 +496,52 @@ Filters combine: `dls img today`.
 
 Configure the Hotkey to show the most recent finished download, then press &lt;kbd&gt;↩&lt;/kbd&gt; to open it or use any modifier above. Unfinished downloads are skipped. The same list appears via the `dls latest` keyword.
 
+Configure the Copy and Paste Hotkeys to copy the latest finished download to the clipboard, or paste it into the frontmost app, without opening Alfred: handy for attaching the file you just downloaded to an email or a chat.
+
 ### In-progress and iCloud Files
 
 Downloads still in progress in Safari, Chrome, Edge, Brave, Firefox or Opera are marked “Downloading…” and the list refreshes on its own while they grow. &lt;kbd&gt;↩&lt;/kbd&gt; reveals them instead of opening a half-finished file. Files stored only in iCloud are marked, and &lt;kbd&gt;↩&lt;/kbd&gt; starts downloading them.
 
 ### Configuration
 
-In the Workflow’s Configuration you can choose another folder to list, sort by date modified or created instead of date added, include files in subfolders (up to four levels deep and 20,000 files, bundles like apps are never opened up), and show hidden files. Cleaning up old downloads is left to a dedicated workflow.
+In the Workflow’s Configuration you can choose another folder to list, sort by date modified or created instead of date added, make &lt;kbd&gt;↩&lt;/kbd&gt; reveal, copy or paste a download instead of opening it (the modifier that did so then opens the file), include files in subfolders (up to four levels deep and 20,000 files, bundles like apps are never opened up), and show hidden files. Cleaning up old downloads is left to a dedicated workflow.
 
 Every keyword can be changed in the Workflow’s Configuration.
 </string>
 	<key>uidata</key>
 	<dict>
+		<key>1CF28492-BF91-5A90-8311-CB63F5EF61FA</key>
+		<dict>
+			<key>note</key>
+			<string>Copy the latest download to the clipboard</string>
+			<key>xpos</key>
+			<integer>30</integer>
+			<key>ypos</key>
+			<integer>150</integer>
+		</dict>
+		<key>21721A0D-0560-58B9-BB34-AC5AE22B88B4</key>
+		<dict>
+			<key>note</key>
+			<string>Paste the latest download into the frontmost app</string>
+			<key>xpos</key>
+			<integer>30</integer>
+			<key>ypos</key>
+			<integer>280</integer>
+		</dict>
+		<key>361BCAC9-8ADA-5D66-AE31-9D45B90F0710</key>
+		<dict>
+			<key>xpos</key>
+			<integer>250</integer>
+			<key>ypos</key>
+			<integer>280</integer>
+		</dict>
+		<key>38EC9644-36E8-5193-82EA-B68DD7AAF297</key>
+		<dict>
+			<key>xpos</key>
+			<integer>250</integer>
+			<key>ypos</key>
+			<integer>150</integer>
+		</dict>
 		<key>3B029FF8-F78D-53CE-AF13-E61B1C60E58D</key>
 		<dict>
 			<key>note</key>
@@ -338,6 +557,15 @@ Every keyword can be changed in the Workflow’s Configuration.
 			<integer>250</integer>
 			<key>ypos</key>
 			<integer>20</integer>
+		</dict>
+		<key>52D26A22-859B-54B4-A681-361BE0FEF55E</key>
+		<dict>
+			<key>note</key>
+			<string>Copy or paste the latest finished download (the action is the argument)</string>
+			<key>xpos</key>
+			<integer>470</integer>
+			<key>ypos</key>
+			<integer>150</integer>
 		</dict>
 		<key>607495E2-3B2A-5DC6-AA12-AD4CEBEFFF11</key>
 		<dict>
@@ -436,6 +664,40 @@ Every keyword can be changed in the Workflow’s Configuration.
 			<string>popupbutton</string>
 			<key>variable</key>
 			<string>sort_by</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>open</string>
+				<key>pairs</key>
+				<array>
+					<array>
+						<string>Open the file</string>
+						<string>open</string>
+					</array>
+					<array>
+						<string>Reveal in Finder</string>
+						<string>reveal</string>
+					</array>
+					<array>
+						<string>Copy the file</string>
+						<string>copy</string>
+					</array>
+					<array>
+						<string>Paste the file</string>
+						<string>paste</string>
+					</array>
+				</array>
+			</dict>
+			<key>description</key>
+			<string>What ↩ does with a download; the modifier that did it opens the file instead</string>
+			<key>label</key>
+			<string>↩ Return</string>
+			<key>type</key>
+			<string>popupbutton</string>
+			<key>variable</key>
+			<string>primary_action</string>
 		</dict>
 		<dict>
 			<key>config</key>

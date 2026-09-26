@@ -12,7 +12,7 @@ PASTEBOARD = "io.github.x-o-r-r-o.downloads.test"
 
 
 def run_js(args, **env):
-    e = {k: v for k, v in os.environ.items() if k not in ("show_hidden", "include_subfolders", "sort_by", "downloads_folder")}
+    e = {k: v for k, v in os.environ.items() if k not in ("show_hidden", "include_subfolders", "sort_by", "downloads_folder", "primary_action")}
     e.update(DL_TEST_PASTEBOARD=PASTEBOARD, DL_TEST_DRYRUN="1", alfred_workflow_cache=tempfile.gettempdir())
     e.update({k: str(v) for k, v in env.items()})
     out = subprocess.run(["osascript", "-l", "JavaScript", "./downloads.js", *args], cwd=SRC, env=e,
@@ -747,6 +747,145 @@ class PerformanceTests(Base):
         self.assertEqual(fast, slow)
 
 
+def where_from(path, *urls):
+    data = plistlib.dumps(list(urls), fmt=plistlib.FMT_BINARY)
+    subprocess.run(["xattr", "-wx", "com.apple.metadata:kMDItemWhereFroms", data.hex(), path], check=True)
+
+
+class Round4Tests(Base):
+    """Round 4: Alfred's real runtime, Workflow Configuration values, and the v1.1 features."""
+
+    def alfred_env(self):
+        # exactly what Alfred gives a script: no LANG/LC_*, no Homebrew, its own variables with spaces
+        b = "io.github.x-o-r-r-o.downloads"
+        home = os.path.join(self.tmp, "home")
+        return {
+            "HOME": os.environ["HOME"], "USER": os.environ.get("USER", ""), "TMPDIR": tempfile.gettempdir(),
+            "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+            "alfred_workflow_data": os.path.join(home, "Library/Application Support/Alfred/Workflow Data", b),
+            "alfred_workflow_cache": os.path.join(home, "Library/Caches/com.runningwithcrayons.Alfred/Workflow Data", b),
+            "alfred_preferences": os.path.join(home, "Library/Application Support/Alfred/Alfred.alfredpreferences"),
+            "alfred_version": "5.6", "alfred_version_build": "2290", "alfred_theme_subtext": "0",
+            "alfred_workflow_bundleid": b, "alfred_workflow_name": "Downloads", "alfred_workflow_uid": "user.workflow.X",
+            "alfred_workflow_version": "1.0.0", "alfred_debug": "1",
+            "keyword_dls": "dls", "downloads_folder": self.dir, "sort_by": "added", "primary_action": "open",
+            "include_subfolders": "0", "show_hidden": "0", "reopen_after_trash": "1",
+            "DL_TEST_DRYRUN": "1", "DL_TEST_PASTEBOARD": PASTEBOARD,
+        }
+
+    def bash(self, script, arg, **extra):
+        e = self.alfred_env()
+        e.update(extra)
+        out = subprocess.run(["/bin/bash", "-c", script, "_", arg], cwd=SRC, env=e, capture_output=True, timeout=60)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        return out.stdout.decode("utf-8")
+
+    def test_minimal_alfred_environment(self):
+        f = touch(self.p("café 🎉 “q”.pdf"), b"12")
+        data = json.loads(self.bash('osascript -l JavaScript ./downloads.js list "$1"', "CAFÉ 🎉"))
+        validate(data)
+        self.assertEqual(data["items"][0]["title"], "café 🎉 “q”.pdf")
+        self.assertTrue(data["items"][0]["subtitle"].startswith("2 bytes · just now"))
+        # the data and cache folders don't exist on a fresh install and are never needed
+        self.assertFalse(os.path.exists(os.path.join(self.tmp, "home")))
+        out = self.bash('osascript -l JavaScript ./downloads.js action "$1"', data["items"][0]["arg"], dl_action="open")
+        self.assertEqual(out, f"open {data['items'][0]['arg']}\n")
+        self.assertTrue(os.path.samefile(data["items"][0]["arg"], f))
+
+    def test_config_values_as_alfred_passes_them(self):
+        touch(self.p(".h"))
+        touch(self.p("a.txt"))
+        # an empty value means the default, not "off"
+        self.assertEqual(titles(self.dir, show_hidden=""), ["a.txt"])
+        self.assertEqual(set(titles(self.dir, show_hidden=" 1 ")), {"a.txt", ".h"})
+        # popups: padded or upper-case values still count; unknown ones fall back
+        self.assertEqual(files(self.dir, sort_by=" Modified ")[0]["title"], "a.txt")
+        self.assertEqual(files(self.dir, primary_action=" Reveal")[0]["variables"]["dl_action"], "reveal")
+        self.assertEqual(files(self.dir, primary_action="delete")[0]["variables"]["dl_action"], "open")
+        # the filepicker value with stray spaces around it
+        self.assertEqual(titles(f"  {self.dir}/ "), ["a.txt"])
+
+    def test_folder_name_ending_with_a_space(self):
+        odd = os.path.join(self.tmp, "Spaced ")
+        touch(os.path.join(odd, "x.txt"))
+        self.assertEqual(titles(odd), ["x.txt"])
+
+    def test_primary_action(self):
+        f = touch(self.p("a.pdf"))
+        for primary, mod in (("reveal", "cmd"), ("copy", "ctrl"), ("paste", "fn")):
+            it = files(self.dir, primary_action=primary)[0]
+            self.assertEqual(it["variables"]["dl_action"], primary)
+            self.assertEqual(it["mods"][mod]["variables"]["dl_action"], "open")
+            self.assertEqual(it["mods"][mod]["subtitle"], "Open the file")
+            self.assertEqual(it["mods"]["alt"]["variables"]["dl_action"], "trash")
+        it = files(self.dir)[0]
+        self.assertEqual({k: m["variables"]["dl_action"] for k, m in it["mods"].items()},
+                         {"cmd": "reveal", "alt": "trash", "ctrl": "copy", "fn": "paste", "shift": "move", "cmd+alt": "copyurl"})
+        # iCloud placeholders still download on ↩, unfinished downloads are still revealed
+        touch(self.p(".Cloud.pdf.icloud"))
+        touch(self.p("big.iso.crdownload"), b"x")
+        rows = {i["title"]: i for i in files(self.dir, primary_action="copy")}
+        self.assertEqual(rows["Cloud.pdf"]["variables"]["dl_action"], "open")
+        self.assertEqual(rows["Cloud.pdf"]["mods"]["ctrl"]["variables"]["dl_action"], "copy")
+        self.assertEqual(rows["big.iso"]["variables"]["dl_action"], "reveal")
+        self.assertEqual(action(f, "copy", self.dir), "Copied “a.pdf” to the clipboard")
+
+    def test_from_website_filter(self):
+        a = touch(self.p("tool.zip"))
+        where_from(a, "https://github.com/x/y/releases/tool.zip", "https://github.com/x/y")
+        b = touch(self.p("paper.pdf"))
+        where_from(b, "https://arxiv.org/pdf/1.pdf")
+        c = touch(self.p("inline.png"))
+        where_from(c, "data:image/png;base64,AAAA")
+        touch(self.p("github notes.txt"))
+        self.assertEqual(titles(self.dir, "from github"), ["tool.zip"])
+        self.assertEqual(titles(self.dir, "From GitHub.com"), ["tool.zip"])
+        self.assertEqual(titles(self.dir, "pdf from arxiv"), ["paper.pdf"])
+        self.assertEqual(titles(self.dir, "from arxiv paper"), ["paper.pdf"])
+        self.assertEqual(titles(self.dir, "from png"), [])  # data: URLs have no website
+        it = items(self.dir, "from nowhere")
+        self.assertEqual(it[0]["title"], "No downloads from that website")
+        # "from" alone is an ordinary search word
+        touch(self.p("from.txt"))
+        self.assertEqual(titles(self.dir, "from"), ["from.txt"])
+
+    def test_latest_without_alfred_window(self):
+        touch(self.p("old.txt"))
+        new = touch(self.p("new.pdf"))
+        touch(self.p("next.zip.crdownload"), b"x")
+        touch(self.p(".Cloud.pdf.icloud"))
+        run = lambda act, **e: run_js(["latest", act], downloads_folder=self.dir, **e)
+        self.assertEqual(run("copy"), "Copied “new.pdf” to the clipboard")
+        self.assertTrue(os.path.samefile(read_pasteboard("url"), new))
+        self.assertTrue(run("paste").startswith("paste "))
+        self.assertTrue(run(" Reveal ").endswith("/new.pdf"))
+        self.assertEqual(run("trash"), "Unknown action for the latest download: trash")
+        self.assertEqual(run(""), "Unknown action for the latest download: ")
+        empty = os.path.join(self.tmp, "Empty")
+        os.makedirs(empty)
+        self.assertEqual(run_js(["latest", "copy"], downloads_folder=empty), "No finished downloads")
+        missing = run_js(["latest", "open"], downloads_folder=os.path.join(self.tmp, "nope"))
+        self.assertTrue(missing.startswith("Downloads folder not found: "), missing)
+        # the Alfred-like environment gives the same answer
+        out = self.bash('osascript -l JavaScript ./downloads.js latest "$1"', "copy")
+        self.assertEqual(out, "Copied “new.pdf” to the clipboard\n")
+
+    def test_silent_success_prints_nothing(self):
+        # the Notification only shows when populated: a silent success must not even print a newline
+        with open(os.path.join(SRC, "downloads.js")) as f:
+            js = f.read()
+        js += "\ndoAction = () => \"\"; doLatest = () => \"\";\n"
+        script = os.path.join(self.tmp, "silent.js")
+        with open(script, "w") as f:
+            f.write(js)
+        for cmd in ("action", "latest"):
+            out = subprocess.run(["osascript", "-l", "JavaScript", script, cmd, "/x"], cwd=SRC, capture_output=True)
+            self.assertEqual((out.returncode, out.stdout), (0, b""), cmd)
+        out = subprocess.run(["osascript", "-l", "JavaScript", "./downloads.js", "action", "/nope"], cwd=SRC,
+                             env=self.alfred_env(), capture_output=True)
+        self.assertEqual(out.stdout.decode(), "“nope” no longer exists\n")
+
+
 class PlistTests(unittest.TestCase):
     def test_build_and_plist(self):
         subprocess.run([sys.executable, "tools/build.py"], cwd=ROOT, check=True, capture_output=True)
@@ -774,11 +913,21 @@ class PlistTests(unittest.TestCase):
         mods = {c["modifiers"] for c in p["connections"][sf_uid]}
         self.assertEqual(mods, {0, 1048576, 524288, 262144, 8388608, 131072, 1572864})
         # the Hotkey passes "latest" through an Argument utility, like alfredapp/thumbnail-navigation-workflow
-        by_type = {o["type"].rsplit(".", 1)[-1]: o for o in p["objects"]}
-        self.assertEqual(by_type["hotkey"]["config"]["hotstring"], "")
-        self.assertEqual(by_type["argument"]["config"]["argument"], "latest")
-        self.assertEqual(p["connections"][by_type["hotkey"]["uid"]][0]["destinationuid"], by_type["argument"]["uid"])
-        self.assertEqual(p["connections"][by_type["argument"]["uid"]][0]["destinationuid"], sf_uid)
+        for o in p["objects"]:
+            if o["type"].endswith("hotkey"):
+                self.assertEqual(o["config"]["hotstring"], "")
+        # the two "latest download" Hotkeys pass their action through an Argument utility to one script
+        acts = {}
+        for o in p["objects"]:
+            if o["type"].endswith("hotkey"):
+                arg = next(x for x in p["objects"] if x["uid"] == p["connections"][o["uid"]][0]["destinationuid"])
+                dest = next(x for x in p["objects"] if x["uid"] == p["connections"][arg["uid"]][0]["destinationuid"])
+                acts[arg["config"]["argument"]] = dest["config"].get("script", dest["type"])
+        self.assertEqual(acts, {"latest": "osascript -l JavaScript ./downloads.js list \"$1\"",
+                                "copy": "osascript -l JavaScript ./downloads.js latest \"$1\"",
+                                "paste": "osascript -l JavaScript ./downloads.js latest \"$1\""})
+        self.assertEqual(cfg["primary_action"]["config"]["default"], "open")
+        self.assertEqual([v for _, v in cfg["primary_action"]["config"]["pairs"]], ["open", "reveal", "copy", "paste"])
         out = subprocess.run(["sips", "-g", "pixelWidth", os.path.join(SRC, "icon.png")], capture_output=True, text=True).stdout
         self.assertGreaterEqual(int(out.split()[-1]), 256)
 
