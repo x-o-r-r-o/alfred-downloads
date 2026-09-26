@@ -38,12 +38,14 @@ function flag(name, fallback) {
   return v === "1" || v === "true" || v === "yes";
 }
 
+const SORTS = new Set(["added", "modified", "created"]);
+
 function config() {
   return {
     folder: expandPath(env("downloads_folder", "")),
     hidden: flag("show_hidden", false),
     subfolders: flag("include_subfolders", false),
-    sortBy: { added: "added", modified: "modified", created: "created" }[env("sort_by", "added")] || "added",
+    sortBy: SORTS.has(env("sort_by", "added")) ? env("sort_by", "added") : "added",
     keyword: env("keyword_dls", "dls"),
     reopen: flag("reopen_after_trash", true),
   };
@@ -438,10 +440,21 @@ function whereFroms(path) {
 function sourceHost(urls) {
   for (const raw of urls) {
     const u = raw.replace(/^blob:/i, "");
-    const m = u.match(/^[a-z][a-z0-9+.-]*:\/\/(?:[^@\/?#]*@)?([^\/?#:]+)/i);
+    const m = u.match(/^[a-z][a-z0-9+.-]*:\/\/(?:[^@\/?#]*@)?(\[[^\]\/?#]*\]|[^\/?#:]+)/i);
     if (m) return m[1].replace(/^www\./, "");
   }
   return "";
+}
+
+// The address worth copying: a web address rather than a page-local blob: or an inline data: URL
+function downloadAddress(urls) {
+  return urls.find((u) => /^(https?|ftp):\/\//i.test(u)) || urls.find((u) => !/^data:/i.test(u)) || "";
+}
+
+// Shorten for display without splitting an emoji or other surrogate pair
+function shorten(s, max) {
+  const chars = Array.from(s);
+  return chars.length > max ? chars.slice(0, max - 1).join("") + "…" : s;
 }
 
 // ---------- Script Filter ----------
@@ -651,7 +664,8 @@ function quoteName(path) {
 }
 
 function pasteboard() {
-  const name = env("DL_TEST_PASTEBOARD", "");
+  // a dry run never touches the real clipboard, even when the test forgot to name a pasteboard
+  const name = env("DL_TEST_PASTEBOARD", "") || (env("DL_TEST_DRYRUN", "") === "1" ? "io.github.x-o-r-r-o.downloads.dryrun" : "");
   return name ? $.NSPasteboard.pasteboardWithName(name) : $.NSPasteboard.generalPasteboard;
 }
 
@@ -665,13 +679,18 @@ function pasteFile(path, dry) {
   if (!copyFile(path)) return `Couldn’t copy ${quoteName(path)}`;
   if (dry) return `paste ${path}`;
   delay(0.25); // let Alfred's window close and the previous app take focus
-  Application("System Events").keystroke("v", { using: "command down" });
+  try {
+    Application("System Events").keystroke("v", { using: "command down" });
+  } catch (e) {
+    return `Copied ${quoteName(path)}: press ⌘V to paste it, or allow Alfred to control System Events in Privacy & Security › Automation`;
+  }
   return "";
 }
 
-function trash(path, cfg) {
+function trash(path, cfg, dry) {
   if (!inside(path, cfg.folder)) return `Not moved: ${quoteName(path)} isn’t inside the Downloads folder`;
   const testDir = env("DL_TEST_TRASH_DIR", "");
+  if (dry && !testDir) return `trash ${path}`; // a dry run never uses the real Trash
   if (testDir) {
     const ok = FM.moveItemAtPathToPathError(path, `${testDir}/${$(path).lastPathComponent.js}`, null);
     return ok ? `Moved ${quoteName(path)} to the Trash` : `Couldn’t move ${quoteName(path)} to the Trash`;
@@ -728,8 +747,9 @@ function moveToFolder(path, dest, cfg) {
 
 function reopenAlfred(cfg) {
   const query = env("dl_query", "");
-  const alfred = Application("com.runningwithcrayons.Alfred");
-  alfred.search(`${cfg.keyword} ${query}`);
+  try {
+    Application("com.runningwithcrayons.Alfred").search(`${cfg.keyword} ${query}`);
+  } catch (e) {} // the file is already in the Trash; the notification still says so
 }
 
 function doAction(path) {
@@ -740,7 +760,11 @@ function doAction(path) {
 
   if (action === "configure") {
     if (dry) return "configure";
-    Application("com.runningwithcrayons.Alfred").revealWorkflow(env("alfred_workflow_bundleid", "io.github.x-o-r-r-o.downloads"));
+    try {
+      Application("com.runningwithcrayons.Alfred").revealWorkflow(env("alfred_workflow_bundleid", "io.github.x-o-r-r-o.downloads"));
+    } catch (e) {
+      return "Open Alfred Preferences › Workflows › Downloads › Configure Workflow to choose the folder";
+    }
     return "";
   }
   if (action === "privacy") {
@@ -776,7 +800,7 @@ function doAction(path) {
       ws.activateFileViewerSelectingURLs($([url]));
       return "";
     case "trash": {
-      const msg = trash(path, cfg);
+      const msg = trash(path, cfg, dry);
       if (!dry && cfg.reopen && msg.startsWith("Moved")) reopenAlfred(cfg);
       return msg;
     }
@@ -799,12 +823,12 @@ function doAction(path) {
       return moveToFolder(path, dest, cfg);
     }
     case "copyurl": {
-      const urls = whereFroms(path);
-      if (!urls.length) return `No download address recorded for ${quoteName(path)}`;
+      const address = downloadAddress(whereFroms(path));
+      if (!address) return `No download address recorded for ${quoteName(path)}`;
       const pb = pasteboard();
       pb.clearContents;
-      pb.setStringForType($(urls[0]), $.NSPasteboardTypeString);
-      return `Copied ${urls[0]}`;
+      pb.setStringForType($(address), $.NSPasteboardTypeString);
+      return `Copied ${shorten(oneLine(address), 200)}`;
     }
     default:
       return `Unknown action: ${action}`;

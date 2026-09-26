@@ -652,7 +652,8 @@ class AuditPass4Tests(Base):
         # never overwrite
         g = touch(self.p("report.pdf"), b"new")
         self.assertTrue(action(g, "move", self.dir, DL_TEST_FINDER_DIR=dest).startswith("Not moved"))
-        self.assertEqual(open(os.path.join(dest, "report.pdf"), "rb").read(), b"data")
+        with open(os.path.join(dest, "report.pdf"), "rb") as fh:
+            self.assertEqual(fh.read(), b"data")
         # already there, no Finder window, into itself, not a download
         self.assertIn("is already in", action(g, "move", self.dir, DL_TEST_FINDER_DIR=self.dir))
         self.assertEqual(action(g, "move", self.dir, DL_TEST_FINDER_DIR=""), "Open the destination folder in Finder first")
@@ -665,6 +666,53 @@ class AuditPass4Tests(Base):
         self.assertEqual(action(part, "move", self.dir, DL_TEST_FINDER_DIR=dest), "“x.iso.crdownload” is still downloading")
         self.assertEqual(action(g, "move", self.dir), f"move {g}")  # dry run never asks Finder
         self.assertFalse(items(self.dir)[-1]["mods"]["shift"]["valid"])
+
+
+class FinalReviewTests(Base):
+    """Regressions for issues found in the final release review."""
+
+    def where_from(self, f, urls):
+        data = plistlib.dumps(urls, fmt=plistlib.FMT_BINARY)
+        subprocess.run(["xattr", "-wx", "com.apple.metadata:kMDItemWhereFroms", data.hex(), f], check=True)
+
+    def test_dry_run_never_uses_the_real_trash(self):
+        f = touch(self.p("keep.txt"))
+        self.assertEqual(action(f, "trash", self.dir), f"trash {f}")
+        self.assertTrue(os.path.exists(f))
+
+    def test_dry_run_never_uses_the_real_clipboard(self):
+        f = touch(self.p("x.txt"))
+        out = run_js(["action", f], downloads_folder=self.dir, dl_action="copy", DL_TEST_PASTEBOARD="")
+        self.assertEqual(out, "Copied “x.txt” to the clipboard")
+
+    def test_copy_address_prefers_a_web_address(self):
+        f = touch(self.p("export.csv"))
+        self.where_from(f, ["blob:https://app.example.org/1234", "https://app.example.org/page"])
+        self.assertEqual(action(f, "copyurl", self.dir), "Copied https://app.example.org/page")
+        g = touch(self.p("inline.png"))
+        self.where_from(g, ["data:image/png;base64," + "A" * 5000])
+        self.assertEqual(action(g, "copyurl", self.dir), "No download address recorded for “inline.png”")
+
+    def test_long_address_is_shortened_without_splitting_emoji(self):
+        f = touch(self.p("long.zip"))
+        url = "https://example.com/" + "🎉" * 300
+        self.where_from(f, [url])
+        out = action(f, "copyurl", self.dir)
+        self.assertTrue(out.endswith("…"), out)
+        self.assertLessEqual(len(out), 420)
+        out.encode("utf-8")  # no lone surrogates
+        self.assertEqual(read_pasteboard("string"), url)
+
+    def test_ipv6_source_host(self):
+        f = touch(self.p("v6.zip"))
+        self.where_from(f, ["http://[2001:db8::1]:8080/v6.zip"])
+        self.assertIn("from [2001:db8::1]", files(self.dir)[0]["subtitle"])
+
+    def test_unknown_sort_value_falls_back(self):
+        touch(self.p("a.txt"))
+        touch(self.p("b.txt"))
+        for v in ("constructor", "__proto__", "bogus"):
+            self.assertEqual(titles(self.dir, sort_by=v), ["b.txt", "a.txt"])
 
 
 class PerformanceTests(Base):

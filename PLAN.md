@@ -13,7 +13,7 @@ Raycast demand this workflow replaces (downloads, 2026-09-26):
 **Alfred today:** Only 2013 'Empty Downloads Folder' style workflows; 'RecentlyAdded' (2014).
 
 ## Features (v1.0)
-- [x] `dls` list newest downloads (by date added) with Quick Look preview (⇧ / ⌘Y) and file-type icons
+- [x] `dls` list newest downloads (by date added) with Quick Look preview (tap ⇧ or ⌘Y) and file-type icons
 - [x] Actions: open, reveal, copy file, paste file, copy path, copy source URL, move to Trash (Move To… via Alfred’s file actions)
 - [x] `dls latest` hotkey: act on most recent finished download
 - [x] Cleanup of old downloads is left to Burrow (`bularge` / `buinstallers` / proposed `old downloads` filter)
@@ -23,6 +23,22 @@ Raycast demand this workflow replaces (downloads, 2026-09-26):
 - [x] Configurable folder, sort order, subfolders, hidden files; in-progress and iCloud-aware
 - [x] 10,000 files listed in ~120 ms, 50,000 in ~0.4 s (getattrlistbulk, no cache needed; the top folder is never truncated)
 - [ ] ~~Universal Action “Move to Downloads”~~: dropped, Alfred’s own Move To file action covers it
+
+## Known limitations
+- Filter words (`pdf`, `today`, `latest`…) at the start of the query are always read as filters, so a file literally named “latest” is found via `dls latest latest`.
+- In-progress detection relies on browser suffixes (`.crdownload`, `.part`, `.download`, `.partial`, `.opdownload`, `.!qB`); other download managers show their files as finished.
+- ⌘⌥↩ copies the first web address recorded by macOS (`kMDItemWhereFroms`); files saved from `data:` URLs or by apps that don’t record it have none.
+- Subfolder mode stops after 20,000 entries and four levels; the top folder is always read in full.
+- Dates and sizes are formatted in English (“3 days ago”, “1.3 MB”) regardless of the system locale.
+
+## Verify in real Alfred
+- [ ] Privacy: with Alfred not yet allowed in Files and Folders, the lock row appears and ↩ opens the right System Settings pane.
+- [ ] fn↩ pastes into Finder/Mail/Slack (first use asks to let Alfred control System Events); ⌘V fallback message if denied.
+- [ ] ⇧↩ asks for Finder automation once, then moves into the frontmost Finder window's folder.
+- [ ] ⌥↩ trashes, “Put Back” works from Finder, and the list reopens with the same query.
+- [ ] The Hotkey opens “dls latest”; `cmd+alt` modifier and `fn` modifier subtitles show.
+- [ ] A Chrome/Safari download in progress refreshes every second and becomes a normal row when finished.
+- [ ] “Choose another folder” (missing folder) opens the workflow in Alfred Preferences.
 
 ## Tech
 - **Stack:** JXA (`getattrlistbulk` via the ObjC bridge, NSWorkspace, NSPasteboard) + Alfred Script Filter JSON.
