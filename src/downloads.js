@@ -408,7 +408,7 @@ function absoluteDate(t) {
 function oneLine(s) {
   // control characters and line breaks become spaces; bidi overrides are dropped so a name
   // like "\u202Egnp.exe" can't pose as a different file type
-  return String(s).replace(/[\x00-\x1f\x7f\u2028\u2029]+/g, " ").replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "");
+  return String(s).replace(/[\x00-\x1f\x7f-\x9f\u2028\u2029]+/g, " ").replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "");
 }
 
 // ---------- extended attributes: where a file was downloaded from ----------

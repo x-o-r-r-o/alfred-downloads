@@ -621,6 +621,8 @@ class AuditPass4Tests(Base):
         it = files(self.dir)[0]
         self.assertEqual(it["title"], "invoicefdp.exe")
         self.assertEqual(os.path.basename(it["arg"]), "invoice\u202efdp.exe")
+        touch(self.p("c1\x85\x9bname.txt"))  # C1 control characters (NEL, CSI)
+        self.assertIn("c1 name.txt", titles(self.dir))
 
     def test_broken_link_skips_alfreds_existence_check(self):
         os.symlink(self.p("missing"), self.p("broken"))
