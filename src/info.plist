@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>bundleid</key>
+	<string>com.xorro.downloads</string>
+	<key>name</key>
+	<string>Downloads</string>
+	<key>description</key>
+	<string>Browse, open, reveal, drag and clean up ~/Downloads, newest first.</string>
+	<key>createdby</key>
+	<string>xorro</string>
+	<key>version</key>
+	<string>0.1.0</string>
+	<key>readme</key>
+	<string>See README.md</string>
+	<key>objects</key>
+	<array/>
+	<key>connections</key>
+	<dict/>
+	<key>uidata</key>
+	<dict/>
+	<key>userconfigurationconfig</key>
+	<array/>
+</dict>
+</plist>
