@@ -22,10 +22,17 @@ func render(symbol: String, hex: String, size: CGFloat, to path: String) throws 
     let base = color(hex)
     NSGradient(starting: base.blended(withFraction: 0.25, of: .white)!, ending: base.blended(withFraction: 0.2, of: .black)!)!
         .draw(in: tile, angle: -90)
+    // Monochrome, then tinted white: a palette with one colour painted every layer white, so the
+    // glyph inside filled symbols (checkmark.circle.fill, number.square.fill…) disappeared
     let config = NSImage.SymbolConfiguration(pointSize: size * 0.46, weight: .semibold)
-        .applying(NSImage.SymbolConfiguration(paletteColors: [.white]))
-    guard let img = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?.withSymbolConfiguration(config) else {
+    guard let symbolImage = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?.withSymbolConfiguration(config) else {
         throw NSError(domain: "icons", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unknown SF Symbol \(symbol)"])
+    }
+    let img = NSImage(size: symbolImage.size, flipped: false) { r in
+        symbolImage.draw(in: r)
+        NSColor.white.set()
+        r.fill(using: .sourceAtop)
+        return true
     }
     let s = img.size
     let scale = min(rect.width * 0.62 / s.width, rect.height * 0.62 / s.height)
